@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "52765421109",
+    "firebase_url": "https://bluefarm-96355-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "bluefarm-96355",
+    "storage_bucket": "bluefarm-96355.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:52765421109:android:3ecdbca43237ffa94f8b7c",
+        "android_client_info": {
+          "package_name": "com.example.bluefarm"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "52765421109-a7mgfjrl3dbjfl17i1v2u8rqdpr1kkq5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.bluefarm",
+            "certificate_hash": "502fb0544502c781ae7647d47a5c1c7ec83f71ad"
+          }
+        },
+        {
+          "client_id": "52765421109-cd5m2ph8br6s5fcudtlo1n4kabikmoh6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQvaq9r5eiDZxcsbRk-yjKOPNMm7OE6ko"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "52765421109-cd5m2ph8br6s5fcudtlo1n4kabikmoh6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "52765421109-jct4tvn8jptmt191m9jbg9nr7kmvf9e6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.bluefarm"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
