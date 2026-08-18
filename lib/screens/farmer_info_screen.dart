@@ -504,7 +504,7 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
 
         await Supabase.instance.client
             .from('profiles')
-            .upsert(payload);
+            .upsert(payload, onConflict: 'id');
 
         if (!mounted) return;
         UIFeedback.showSuccess(context, "Farmer profile created!");
@@ -528,7 +528,7 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
           'region': _buyerRegion,
           'gps_address': _buyerGpsCtrl.text.trim(),
           'account_status': 'active',
-        });
+        }, onConflict: 'id');
 
         if (!mounted) return;
         UIFeedback.showSuccess(context, "Buyer profile created!");
