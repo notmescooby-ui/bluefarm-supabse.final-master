@@ -40,27 +40,8 @@ class BlueFarmApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: provider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-        // Smart Routing: If logged in, go to Role Selection, otherwise Splash
-        home: StreamBuilder<AuthState>(
-          stream: Supabase.instance.client.auth.onAuthStateChange,
-          builder: (context, snapshot) {
-            // Check initial session to avoid flashing loading screen
-            final currentSession = Supabase.instance.client.auth.currentSession;
-            if (snapshot.connectionState == ConnectionState.waiting && currentSession == null) {
-              return const Scaffold(
-                body: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
-            
-            final session = snapshot.hasData ? snapshot.data!.session : currentSession;
-            if (session != null) {
-              return const RoleSelectionScreen();
-            }
-            return const SplashScreen();
-          },
-        ),
+        // Routing is handled manually by AuthService and SplashScreen
+        home: const SplashScreen(),
       ),
     );
   }

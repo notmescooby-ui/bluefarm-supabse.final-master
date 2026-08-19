@@ -5,7 +5,6 @@ import 'package:bluefarm/services/ui_feedback_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/bounce_button.dart';
 import 'otp_screen.dart';
-import 'login_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});

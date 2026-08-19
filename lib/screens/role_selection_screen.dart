@@ -41,8 +41,24 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       if (!mounted) return;
       final hasProfile = profile != null &&
           (profile['full_name'] as String?)?.isNotEmpty == true;
-      final isSelectedRoleReady =
-          hasProfile && (profile['role'] as String?) == role;
+          
+      bool isSelectedRoleReady = false;
+      if (hasProfile) {
+        final currentRole = profile['role'] as String?;
+        if (currentRole != null && currentRole.toLowerCase() == role.toLowerCase()) {
+          isSelectedRoleReady = true;
+        } else if (currentRole == null) {
+          // Legacy profile that was created before the 'role' column was introduced
+          if (role == 'farmer' && profile['farm_name'] != null) {
+            isSelectedRoleReady = true;
+            // Silently upgrade their profile to have the role
+            Supabase.instance.client.from('profiles').update({'role': 'farmer'}).eq('id', user.id);
+          } else if (role == 'buyer' && profile['company_name'] != null) {
+            isSelectedRoleReady = true;
+            Supabase.instance.client.from('profiles').update({'role': 'buyer'}).eq('id', user.id);
+          }
+        }
+      }
 
       if (!isSelectedRoleReady) {
         UIFeedback.showInfo(context, "Please complete your $role profile");
@@ -57,14 +73,14 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         );
       } else if (role == 'buyer') {
         UIFeedback.showSuccess(
-            context, "Welcome back, ${profile['full_name']}");
+            context, "Welcome back, ${profile!['full_name']}");
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const BuyerShell()),
           (route) => false,
         );
       } else {
         UIFeedback.showSuccess(
-            context, "Welcome back, ${profile['full_name']}");
+            context, "Welcome back, ${profile!['full_name']}");
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const MainShell()),
           (route) => false,

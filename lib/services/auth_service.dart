@@ -37,7 +37,7 @@ class AuthService {
     scopes: ['email'],
   );
 
-  Future<void> signInWithGoogle() async {
+  Future<void> signInWithGoogle({bool isLogin = false}) async {
     try {
       if (kIsWeb) {
         debugPrint("Google Auth: Using Supabase OAuth for Web...");
@@ -55,6 +55,8 @@ class AuthService {
         debugPrint("Google Auth: Flow cancelled by user.");
         return;
       }
+
+
 
       debugPrint("Google Auth: Getting authentication tokens...");
       final googleAuth = await googleUser.authentication;
@@ -95,6 +97,13 @@ class AuthService {
       );
       // Pass phone instead of verificationId for Supabase
       onCodeSent(phone);
+    } on AuthException catch (e) {
+      debugPrint("Phone AuthException: ${e.message}");
+      if (e.message.toLowerCase().contains("signups not allowed") || e.message.toLowerCase().contains("user not found")) {
+        onError("Account not found. Please create an account first.");
+      } else {
+        onError(e.message);
+      }
     } catch (e) {
       debugPrint("Phone Auth Error: $e");
       onError(e.toString());
@@ -119,6 +128,13 @@ class AuthService {
     try {
       await _auth.signInWithOtp(email: email.trim(), shouldCreateUser: shouldCreateUser);
       onCodeSent();
+    } on AuthException catch (e) {
+      debugPrint("Email AuthException: ${e.message}");
+      if (e.message.toLowerCase().contains("signups not allowed") || e.message.toLowerCase().contains("user not found")) {
+        onError("Account not found. Please create an account first.");
+      } else {
+        onError(e.message);
+      }
     } catch (e) {
       debugPrint("Email Auth Error: $e");
       onError(e.toString());
@@ -187,16 +203,7 @@ class AuthService {
 
     if (context.mounted) {
       if (doc != null && doc['full_name'] != null) {
-        final role = doc['role'] as String? ?? 'farmer';
-        if (role == 'farmer') {
-          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const MainShell()), (r) => false);
-        } else if (role == 'buyer') {
-          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const BuyerShell()), (r) => false);
-        } else if (role == 'admin') {
-          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const AdminShell()), (r) => false);
-        } else {
-          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const MainShell()), (r) => false);
-        }
+        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const RoleSelectionScreen()), (r) => false);
       } else {
         // No profile -> Account not found
         await signOut();
@@ -221,20 +228,8 @@ class AuthService {
       if (doc != null && doc['full_name'] != null) {
         // Already has an account, log them in
         UIFeedback.showSuccess(context, "Account already exists, logging you in.");
-        final role = doc['role'] as String? ?? 'farmer';
-        if (role == 'farmer') {
-          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const MainShell()), (r) => false);
-        } else if (role == 'buyer') {
-          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const BuyerShell()), (r) => false);
-        } else if (role == 'admin') {
-          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const AdminShell()), (r) => false);
-        } else {
-          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const MainShell()), (r) => false);
-        }
-      } else {
-        // New account -> role selection
-        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const RoleSelectionScreen()), (r) => false);
       }
+      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const RoleSelectionScreen()), (r) => false);
     }
   }
 }

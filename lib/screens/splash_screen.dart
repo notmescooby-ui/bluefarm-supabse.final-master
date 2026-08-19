@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'language_screen.dart';
+import 'role_selection_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -21,6 +23,18 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
+    
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context, 
+          MaterialPageRoute(builder: (_) => const RoleSelectionScreen())
+        );
+      });
+      return;
+    }
+
     _videoCtrl = VideoPlayerController.asset('lib/assets/splash-screen.mp4')
       ..initialize().then((_) {
         _videoCtrl.setLooping(true);
