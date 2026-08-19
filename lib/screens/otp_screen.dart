@@ -3,14 +3,20 @@ import 'package:bluefarm/services/auth_service.dart';
 import 'package:bluefarm/services/ui_feedback_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/bounce_button.dart';
-import 'role_selection_screen.dart';
 
 class OtpScreen extends StatefulWidget {
-  final String phone;
-  final String verificationId;
+  final String identifier; // phone or email
+  final String? verificationId; // needed for SMS sometimes, but we pass identifier for both
+  final bool isLogin;
+  final bool isEmail;
 
-  const OtpScreen(
-      {super.key, required this.phone, required this.verificationId});
+  const OtpScreen({
+    super.key, 
+    required this.identifier, 
+    this.verificationId,
+    this.isLogin = false,
+    this.isEmail = false,
+  });
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -68,7 +74,9 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
     setState(() => _loading = true);
 
     try {
-      final res = await AuthService().verifyOTP(widget.verificationId, _otp);
+      final res = widget.isEmail 
+        ? await AuthService().verifyEmailOtp(widget.identifier, _otp)
+        : await AuthService().verifyOTP(widget.identifier, _otp); // Use identifier as phone for our SMS flow
 
       if (res.user != null && mounted) {
         setState(() => _verified = true);
@@ -78,16 +86,11 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
         await Future.delayed(const Duration(seconds: 1));
         if (!mounted) return;
 
-        Navigator.pushAndRemoveUntil(
-          context,
-          PageRouteBuilder(
-            transitionDuration: const Duration(milliseconds: 600),
-            pageBuilder: (_, __, ___) => const RoleSelectionScreen(),
-            transitionsBuilder: (_, anim, __, child) =>
-                FadeTransition(opacity: anim, child: child),
-          ),
-          (route) => false,
-        );
+        if (widget.isLogin) {
+          await AuthService().handleLoginRedirect(context);
+        } else {
+          await AuthService().handleSignupRedirect(context);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -155,7 +158,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                   FadeTransition(
                     opacity: _fadAt(0.1, 0.5),
                     child: Text(
-                      'Enter 6-digit code sent to\n${widget.phone}',
+                      'Enter 6-digit code sent to\n${widget.identifier}',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 16,

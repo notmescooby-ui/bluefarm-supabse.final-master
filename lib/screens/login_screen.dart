@@ -1,12 +1,10 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:bluefarm/services/auth_service.dart';
 import 'package:bluefarm/services/ui_feedback_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/bounce_button.dart';
-import 'role_selection_screen.dart';
 import 'signup_screen.dart';
-import 'forgot_password_screen.dart';
+import 'otp_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,10 +15,10 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
   final identifierController = TextEditingController();
-  final passwordController = TextEditingController();
+  final phoneController = TextEditingController();
   
-  bool _obscurePassword = true;
   bool _loading = false;
+  bool _phoneLoading = false;
   late AnimationController _entryCtrl;
 
   @override
@@ -36,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   void dispose() {
     _entryCtrl.dispose();
     identifierController.dispose();
-    passwordController.dispose();
+    phoneController.dispose();
     super.dispose();
   }
 
@@ -62,14 +60,8 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     setState(() => _loading = true);
     try {
       await AuthService().signInWithGoogle();
-
       if (mounted) {
-        UIFeedback.showSuccess(context, "Welcome to BlueFarm!");
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
-          (route) => false,
-        );
+        await AuthService().handleLoginRedirect(context);
       }
     } catch (e) {
       if (mounted) {
@@ -79,41 +71,191 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     if (mounted) setState(() => _loading = false);
   }
 
-  Future<void> _login() async {
-    final identifier = identifierController.text.trim();
-    final password = passwordController.text.trim();
-
-    if (identifier.isEmpty || password.isEmpty) {
-      UIFeedback.showInfo(context, "Please enter both fields");
+  Future<void> _sendEmailOtp() async {
+    final email = identifierController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      UIFeedback.showInfo(context, "Please enter a valid email");
       return;
     }
 
     setState(() => _loading = true);
-    try {
-      await AuthService().signInWithEmailAndPassword(
-        identifier: identifier,
-        password: password,
-      );
 
-      if (mounted) {
-        UIFeedback.showSuccess(context, "Welcome back!");
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
-          (route) => false,
+    await AuthService().sendEmailOtp(
+      email: email,
+      shouldCreateUser: false,
+      onCodeSent: () {
+        if (mounted) {
+          UIFeedback.showSuccess(context, "OTP sent successfully to email");
+          Navigator.push(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => OtpScreen(identifier: email, isLogin: true, isEmail: true),
+              transitionDuration: const Duration(milliseconds: 600),
+              transitionsBuilder: (_, anim, __, child) {
+                return FadeTransition(opacity: anim, child: child);
+              }
+            )
+          );
+        }
+      },
+      onError: (e) {
+        if (mounted) {
+          UIFeedback.showError(context, e);
+          setState(() => _loading = false);
+        }
+      }
+    );
+  }
+  
+  Future<void> _sendPhoneOtp() async {
+    final phone = phoneController.text.trim();
+    if (phone.isEmpty || phone.length < 10) {
+      UIFeedback.showInfo(context, "Please enter a valid phone number");
+      return;
+    }
+
+    setState(() => _phoneLoading = true);
+
+    await AuthService().verifyPhone(
+      phone: phone,
+      shouldCreateUser: false,
+      onCodeSent: (vid) {
+        if (mounted) {
+          Navigator.pop(context); // close bottom sheet
+          UIFeedback.showSuccess(context, "OTP sent successfully to phone");
+          Navigator.push(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => OtpScreen(identifier: phone, verificationId: vid, isLogin: true, isEmail: false),
+              transitionDuration: const Duration(milliseconds: 600),
+              transitionsBuilder: (_, anim, __, child) {
+                return FadeTransition(opacity: anim, child: child);
+              }
+            )
+          );
+        }
+      },
+      onError: (e) {
+        if (mounted) {
+          UIFeedback.showError(context, e);
+          setState(() => _phoneLoading = false);
+        }
+      }
+    );
+  }
+
+  void _showPhoneLoginSheet() {
+    phoneController.clear();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      "Login with Phone",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0D1F3C),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      style: const TextStyle(
+                        color: Color(0xFF0D1F3C),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: "+91 XXXXXXXXXX",
+                        hintStyle: TextStyle(
+                          color: const Color(0xFF5A789E).withValues(alpha: 0.7),
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.phone_android_rounded,
+                          color: Color(0xFF5A789E),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF3F6F8),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: Color(0xFF059669), width: 2),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    BounceButton(
+                      onPressed: _phoneLoading ? null : () async {
+                        setSheetState(() => _phoneLoading = true);
+                        await _sendPhoneOtp();
+                        if (mounted) {
+                          setSheetState(() => _phoneLoading = false);
+                        }
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4CAF50),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: _phoneLoading
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                 ),
+                                )
+                              : const Text(
+                                  "SEND OTP",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
         );
       }
-    } on AuthException catch (e) {
-      if (mounted) {
-        UIFeedback.showError(context, e.message);
-      }
-    } catch (e) {
-      if (mounted) {
-        UIFeedback.showError(context, "Login failed. Please try again.");
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    );
   }
 
   @override
@@ -193,16 +335,17 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              // Email / Mobile Field
+                              // Email Field
                               TextField(
                                 controller: identifierController,
+                                keyboardType: TextInputType.emailAddress,
                                 style: const TextStyle(
                                   color: Color(0xFF0D1F3C),
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                 ),
                                 decoration: InputDecoration(
-                                  hintText: "Email or Mobile Number",
+                                  hintText: "Email Address",
                                   hintStyle: TextStyle(
                                     color: const Color(0xFF5A789E).withValues(alpha: 0.7),
                                   ),
@@ -223,84 +366,11 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                   contentPadding: const EdgeInsets.symmetric(vertical: 18),
                                 ),
                               ),
-                              const SizedBox(height: 16),
-                              
-                              // Password Field
-                              TextField(
-                                controller: passwordController,
-                                obscureText: _obscurePassword,
-                                style: const TextStyle(
-                                  color: Color(0xFF0D1F3C),
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: "Password",
-                                  hintStyle: TextStyle(
-                                    color: const Color(0xFF5A789E).withValues(alpha: 0.7),
-                                  ),
-                                  prefixIcon: const Icon(
-                                    Icons.lock_outline_rounded,
-                                    color: Color(0xFF5A789E),
-                                  ),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                      color: const Color(0xFF5A789E),
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscurePassword = !_obscurePassword;
-                                      });
-                                    },
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: const BorderSide(color: Color(0xFF059669), width: 2),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 18),
-                                ),
-                              ),
-                              
-                              const SizedBox(height: 12),
-                              
-                              // Forgot Password
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: TextButton(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context, 
-                                      MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())
-                                    );
-                                  },
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.zero,
-                                    minimumSize: const Size(50, 30),
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: const Text(
-                                    "Forgot Password?",
-                                    style: TextStyle(
-                                      color: Color(0xFF059669), // Green accent from reference
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              
                               const SizedBox(height: 24),
                               
                               // Login Button
                               BounceButton(
-                                onPressed: _loading ? null : _login,
+                                onPressed: _loading ? null : _sendEmailOtp,
                                 child: Container(
                                   width: double.infinity,
                                   height: 56,
@@ -326,7 +396,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                             ),
                                           )
                                         : const Text(
-                                            "LOGIN",
+                                            "GET OTP",
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 16,
@@ -340,8 +410,10 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               
                               const SizedBox(height: 24),
                               
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                              // Fixed pixel overflow using Wrap
+                              Wrap(
+                                alignment: WrapAlignment.center,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
                                   const Text(
                                     "Don't have an account?",
@@ -382,11 +454,57 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                     
                     const SizedBox(height: 30),
                     
-                    // Google Sign In Button
+                    // Continue with Phone Button
                     FadeTransition(
                       opacity: _fadeAt(0.3, 0.7),
                       child: SlideTransition(
                         position: _slideAt(0.3, 0.7),
+                        child: BounceButton(
+                          onPressed: _loading ? null : _showPhoneLoginSheet,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.06),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.phone_android_rounded,
+                                  color: Color(0xFF0D1F3C),
+                                  size: 22,
+                                ),
+                                SizedBox(width: 14),
+                                Text(
+                                  "Continue with Phone",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF0D1F3C),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Google Sign In Button
+                    FadeTransition(
+                      opacity: _fadeAt(0.4, 0.8),
+                      child: SlideTransition(
+                        position: _slideAt(0.4, 0.8),
                         child: BounceButton(
                           onPressed: _loading ? null : signInWithGoogle,
                           child: Container(

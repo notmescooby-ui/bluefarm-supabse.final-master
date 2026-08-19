@@ -182,7 +182,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
                   onPressed: () async {
                     await Supabase.instance.client.auth.signOut();
-                    if (!mounted) return;
+                    if (!context.mounted) return;
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(builder: (_) => const LoginScreen()),
                       (route) => false,

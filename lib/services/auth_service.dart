@@ -1,9 +1,34 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:bluefarm/screens/main_shell.dart';
+import 'package:bluefarm/screens/buyer_shell.dart';
+import 'package:bluefarm/screens/admin_shell.dart';
+import 'package:bluefarm/screens/role_selection_screen.dart';
+import 'package:bluefarm/services/ui_feedback_service.dart';
 
 class AuthService {
   final GoTrueClient _auth = Supabase.instance.client.auth;
+
+  Future<bool> checkProfileExists({String? email, String? phone}) async {
+    try {
+      final query = Supabase.instance.client.from('profiles').select('id');
+      
+      if (email != null && email.isNotEmpty) {
+        final res = await query.eq('email', email.trim()).maybeSingle();
+        return res != null;
+      } else if (phone != null && phone.isNotEmpty) {
+        final res = await query.eq('phone', phone.trim()).maybeSingle();
+        return res != null;
+      }
+      return false;
+    } catch (e) {
+      debugPrint("Check Profile Error: $e");
+      // If RLS prevents anonymous read, this might throw. Assuming public read for now.
+      return false;
+    }
+  }
 
   // Use the Web Client ID for Google Auth
   final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -58,6 +83,7 @@ class AuthService {
   // --- SMS Logic (Supabase) ---
   Future<void> verifyPhone({
     required String phone,
+    bool shouldCreateUser = true,
     required Function(String) onCodeSent,
     required Function(String) onError,
   }) async {
@@ -65,6 +91,7 @@ class AuthService {
       // Formats expected by Supabase (e.g. +91...)
       await _auth.signInWithOtp(
         phone: phone,
+        shouldCreateUser: shouldCreateUser,
       );
       // Pass phone instead of verificationId for Supabase
       onCodeSent(phone);
@@ -79,6 +106,30 @@ class AuthService {
       type: OtpType.sms,
       token: smsCode,
       phone: phone,
+    );
+  }
+
+  // --- Email OTP Logic ---
+  Future<void> sendEmailOtp({
+    required String email,
+    bool shouldCreateUser = true,
+    required Function() onCodeSent,
+    required Function(String) onError,
+  }) async {
+    try {
+      await _auth.signInWithOtp(email: email.trim(), shouldCreateUser: shouldCreateUser);
+      onCodeSent();
+    } catch (e) {
+      debugPrint("Email Auth Error: $e");
+      onError(e.toString());
+    }
+  }
+
+  Future<AuthResponse> verifyEmailOtp(String email, String token) async {
+    return await _auth.verifyOTP(
+      type: OtpType.email,
+      token: token,
+      email: email.trim(),
     );
   }
 
@@ -122,5 +173,68 @@ class AuthService {
   Future<void> signOut() async {
     await _googleSignIn.signOut();
     await _auth.signOut();
+  }
+
+  Future<void> handleLoginRedirect(BuildContext context) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    
+    final doc = await Supabase.instance.client
+        .from('profiles')
+        .select()
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (context.mounted) {
+      if (doc != null && doc['full_name'] != null) {
+        final role = doc['role'] as String? ?? 'farmer';
+        if (role == 'farmer') {
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const MainShell()), (r) => false);
+        } else if (role == 'buyer') {
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const BuyerShell()), (r) => false);
+        } else if (role == 'admin') {
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const AdminShell()), (r) => false);
+        } else {
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const MainShell()), (r) => false);
+        }
+      } else {
+        // No profile -> Account not found
+        await signOut();
+        if (context.mounted) {
+          UIFeedback.showError(context, "Account not found. Please create an account first.");
+        }
+      }
+    }
+  }
+
+  Future<void> handleSignupRedirect(BuildContext context) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    
+    final doc = await Supabase.instance.client
+        .from('profiles')
+        .select()
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (context.mounted) {
+      if (doc != null && doc['full_name'] != null) {
+        // Already has an account, log them in
+        UIFeedback.showSuccess(context, "Account already exists, logging you in.");
+        final role = doc['role'] as String? ?? 'farmer';
+        if (role == 'farmer') {
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const MainShell()), (r) => false);
+        } else if (role == 'buyer') {
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const BuyerShell()), (r) => false);
+        } else if (role == 'admin') {
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const AdminShell()), (r) => false);
+        } else {
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const MainShell()), (r) => false);
+        }
+      } else {
+        // New account -> role selection
+        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const RoleSelectionScreen()), (r) => false);
+      }
+    }
   }
 }

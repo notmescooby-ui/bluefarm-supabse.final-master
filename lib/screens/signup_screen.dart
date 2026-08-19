@@ -5,7 +5,7 @@ import 'package:bluefarm/services/ui_feedback_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/bounce_button.dart';
 import 'otp_screen.dart';
-import 'role_selection_screen.dart';
+import 'login_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -60,12 +60,7 @@ class _SignupScreenState extends State<SignupScreen>
       await AuthService().signInWithGoogle();
 
       if (mounted) {
-        UIFeedback.showSuccess(context, "Welcome to BlueFarm!");
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
-          (route) => false,
-        );
+        await AuthService().handleSignupRedirect(context);
       }
     } catch (e) {
       if (mounted) {
@@ -100,7 +95,7 @@ class _SignupScreenState extends State<SignupScreen>
               PageRouteBuilder(
                 transitionDuration: const Duration(milliseconds: 600),
                 pageBuilder: (_, __, ___) =>
-                    OtpScreen(phone: phone, verificationId: verificationId),
+                    OtpScreen(identifier: phone, verificationId: verificationId, isLogin: false, isEmail: false),
                 transitionsBuilder: (_, anim, __, child) {
                   return FadeTransition(
                     opacity: anim,
