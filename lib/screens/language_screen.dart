@@ -1,6 +1,4 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
 import '../widgets/bounce_button.dart';
 import '../localization/app_translations.dart';
 import 'login_screen.dart';
@@ -17,7 +15,6 @@ class _LanguageScreenState extends State<LanguageScreen>
   String selectedLanguage = "en";
   late AnimationController _staggerCtrl;
   late AnimationController _buttonCtrl;
-  late AnimationController _waveCtrl;
 
   static const _languages = [
     ('en', 'English', 'ENGLISH', '🇬🇧'),
@@ -39,11 +36,6 @@ class _LanguageScreenState extends State<LanguageScreen>
       duration: const Duration(milliseconds: 800),
     );
 
-    _waveCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 8),
-    )..repeat();
-
     Future.delayed(const Duration(milliseconds: 650), () {
       if (mounted) _buttonCtrl.forward();
     });
@@ -53,7 +45,6 @@ class _LanguageScreenState extends State<LanguageScreen>
   void dispose() {
     _staggerCtrl.dispose();
     _buttonCtrl.dispose();
-    _waveCtrl.dispose();
     super.dispose();
   }
 
@@ -85,31 +76,14 @@ class _LanguageScreenState extends State<LanguageScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Stack(
+        fit: StackFit.expand,
         children: [
-          // Background Gradient (Water/Sky theme)
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: AppTheme.oceanGradient,
-              ),
-            ),
-          ),
-
-          // Animated bottom waves
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 160,
-            child: AnimatedBuilder(
-              animation: _waveCtrl,
-              builder: (context, _) {
-                return CustomPaint(
-                  painter: _LanguageWavePainter(_waveCtrl.value),
-                );
-              },
-            ),
+          // Background Image
+          Image.asset(
+            'lib/assets/bg-screens.png',
+            fit: BoxFit.cover,
           ),
 
           // Content
@@ -362,34 +336,4 @@ class _LanguageScreenState extends State<LanguageScreen>
       ),
     );
   }
-}
-
-class _LanguageWavePainter extends CustomPainter {
-  final double t;
-  _LanguageWavePainter(this.t);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    for (int i = 0; i < 2; i++) {
-      final paint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.08 - i * 0.03)
-        ..style = PaintingStyle.fill;
-
-      final path = Path();
-      path.moveTo(0, size.height);
-
-      for (double x = 0; x <= size.width; x += 5) {
-        final y = size.height * 0.4 +
-            sin((x / size.width * 2 * pi) + (t * 2 * pi) + (i * pi)) * 12;
-        path.lineTo(x, y);
-      }
-      path.lineTo(size.width, size.height);
-      path.close();
-      canvas.drawPath(path, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _LanguageWavePainter old) => true;
 }

@@ -7,6 +7,7 @@ import 'home_screen.dart';
 import 'knowledge_screen.dart';
 import 'insights_screen.dart';
 import 'harvest_screen.dart';
+import 'market_near_me_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -36,9 +37,10 @@ class _MainShellState extends State<MainShell> {
             index: _currentIndex,
             children: const [
               HomeScreen(),
+              MarketNearMeScreen(isFarmer: true),
+              HarvestScreen(),
               InsightsScreen(),
               KnowledgeScreen(),
-              HarvestScreen(),
               SettingsScreen(),
             ],
           ),
@@ -50,10 +52,10 @@ class _MainShellState extends State<MainShell> {
             right: 0,
             child: Container(
               padding: EdgeInsets.only(
-                top: 12,
-                bottom: 12 + MediaQuery.of(context).padding.bottom,
-                left: 16,
-                right: 16,
+                top: 8,
+                bottom: 8 + MediaQuery.of(context).padding.bottom,
+                left: 8,
+                right: 8,
               ),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -82,32 +84,39 @@ class _MainShellState extends State<MainShell> {
                     onTap: () => setState(() => _currentIndex = 0),
                   ),
                   _buildNavItem(
+                    icon: Icons.near_me_rounded,
+                    inactiveIcon: Icons.near_me_outlined,
+                    label: 'Near Me',
+                    isActive: _currentIndex == 1,
+                    onTap: () => setState(() => _currentIndex = 1),
+                  ),
+                  _buildNavItem(
+                    icon: Icons.inventory_2_rounded,
+                    inactiveIcon: Icons.inventory_2_outlined,
+                    label: 'Harvest',
+                    isActive: _currentIndex == 2,
+                    onTap: () => setState(() => _currentIndex = 2),
+                  ),
+                  _buildNavItem(
                     icon: Icons.show_chart_rounded,
                     inactiveIcon: Icons.show_chart_rounded,
                     label: 'Insights',
-                    isActive: _currentIndex == 1,
-                    onTap: () => setState(() => _currentIndex = 1),
+                    isActive: _currentIndex == 3,
+                    onTap: () => setState(() => _currentIndex = 3),
                   ),
                   _buildNavItem(
                     icon: Icons.auto_awesome_rounded,
                     inactiveIcon: Icons.auto_awesome_outlined,
                     label: 'Learn',
-                    isActive: _currentIndex == 2,
-                    onTap: () => setState(() => _currentIndex = 2),
-                  ),
-                  _buildNavItem(
-                    icon: Icons.shopping_basket_rounded,
-                    inactiveIcon: Icons.shopping_basket_outlined,
-                    label: 'Market',
-                    isActive: _currentIndex == 3,
-                    onTap: () => setState(() => _currentIndex = 3),
+                    isActive: _currentIndex == 4,
+                    onTap: () => setState(() => _currentIndex = 4),
                   ),
                   _buildNavItem(
                     icon: Icons.account_circle_rounded,
                     inactiveIcon: Icons.account_circle_outlined,
                     label: 'Account',
-                    isActive: _currentIndex == 4,
-                    onTap: () => setState(() => _currentIndex = 4),
+                    isActive: _currentIndex == 5,
+                    onTap: () => setState(() => _currentIndex = 5),
                   ),
                 ],
               ),
@@ -126,20 +135,19 @@ class _MainShellState extends State<MainShell> {
     required VoidCallback onTap,
   }) {
     final color = isActive ? const Color(0xFF1565C0) : const Color(0xFF6B7280);
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 64,
-        padding: const EdgeInsets.symmetric(vertical: 4),
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(isActive ? icon : inactiveIcon, size: 26, color: color),
-            const SizedBox(height: 4),
+            Icon(isActive ? icon : inactiveIcon, size: 24, color: color),
+            const SizedBox(height: 3),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.w500,

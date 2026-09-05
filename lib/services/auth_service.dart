@@ -2,9 +2,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:bluefarm/screens/main_shell.dart';
-import 'package:bluefarm/screens/buyer_shell.dart';
-import 'package:bluefarm/screens/admin_shell.dart';
 import 'package:bluefarm/screens/role_selection_screen.dart';
 import 'package:bluefarm/services/ui_feedback_service.dart';
 

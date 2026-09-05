@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bluefarm/services/auth_service.dart';
 import 'package:bluefarm/services/ui_feedback_service.dart';
-import '../theme/app_theme.dart';
 import '../widgets/bounce_button.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -127,12 +126,14 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
         ),
         centerTitle: true,
       ),
-      body: Container(
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: AppTheme.oceanGradient,
-        ),
-        child: Center(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'lib/assets/bg-screens.png',
+            fit: BoxFit.cover,
+          ),
+          Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
             child: ConstrainedBox(
@@ -300,7 +301,8 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
             ),
           ),
         ),
-      ),
-    );
+      ],
+    ),
+  );
   }
 }

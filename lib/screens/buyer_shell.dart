@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../services/auth_redirect_service.dart';
 import 'edit_profile_screen.dart';
+import 'market_near_me_screen.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 //  BUYER SHELL — Quick-commerce fish marketplace
 //  Tabs: Market | Orders (Cart) | Profile
@@ -106,7 +107,7 @@ class _BuyerShellState extends State<BuyerShell> {
       action: SnackBarAction(
           label: 'View Cart',
           textColor: Colors.white,
-          onPressed: () => setState(() => _tab = 1)),
+          onPressed: () => setState(() => _tab = 2)),
     ));
   }
 
@@ -139,7 +140,7 @@ class _BuyerShellState extends State<BuyerShell> {
           total: _total,
           onOrderPlaced: () {
             _clearCart();
-            setState(() => _tab = 1);
+            setState(() => _tab = 2);
           },
         ),
       ),
@@ -156,18 +157,24 @@ class _BuyerShellState extends State<BuyerShell> {
       backgroundColor: _kBg,
       body: Column(
         children: [
-          // ── Thin green identity strip ─────────────────────────────────────
-          _ThinGreenStrip(
-            buyerName: _buyerName,
-            buyerLocation: _buyerLocation,
-          ),
+          // ── Thin green identity strip (shown for Market, Orders, Profile) ──
+          if (_tab != 1)
+            _ThinGreenStrip(
+              buyerName: _buyerName,
+              buyerLocation: _buyerLocation,
+            ),
 
           // ── Main content ─────────────────────────────────────────────────
           Expanded(
             child: Stack(
               children: [
                 IndexedStack(index: _tab, children: [
-                  _MarketTab(onAddToCart: _addToCart, cart: _cart),
+                  _MarketTab(
+                    onAddToCart: _addToCart,
+                    cart: _cart,
+                    onOpenNearMe: () => setState(() => _tab = 1),
+                  ),
+                  const MarketNearMeScreen(isFarmer: false),
                   _OrdersTab(
                     cart: _cart,
                     onRemove: _removeFromCart,
@@ -183,7 +190,7 @@ class _BuyerShellState extends State<BuyerShell> {
                   Positioned(
                     bottom: 16, left: 20, right: 20,
                     child: GestureDetector(
-                      onTap: () => setState(() => _tab = 1),
+                      onTap: () => setState(() => _tab = 2),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 20, vertical: 14),
@@ -250,6 +257,10 @@ class _BuyerShellState extends State<BuyerShell> {
               icon: Icon(Icons.storefront_outlined),
               selectedIcon: Icon(Icons.storefront, color: _kGreen),
               label: 'Market'),
+          const NavigationDestination(
+              icon: Icon(Icons.near_me_outlined),
+              selectedIcon: Icon(Icons.near_me_rounded, color: _kGreen),
+              label: 'Near Me'),
           NavigationDestination(
               icon: _count > 0
                   ? Badge(
@@ -358,7 +369,12 @@ class _ThinGreenStrip extends StatelessWidget {
 class _MarketTab extends StatefulWidget {
   final void Function(CartItem) onAddToCart;
   final List<CartItem> cart;
-  const _MarketTab({required this.onAddToCart, required this.cart});
+  final VoidCallback? onOpenNearMe;
+  const _MarketTab({
+    required this.onAddToCart,
+    required this.cart,
+    this.onOpenNearMe,
+  });
 
   @override
   State<_MarketTab> createState() => _MarketTabState();
@@ -542,6 +558,111 @@ class _MarketTabState extends State<_MarketTab> {
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(slivers: [
+      // ── Market Near Me Card ───────────────────────────────────────────────
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: GestureDetector(
+            onTap: () {
+              if (widget.onOpenNearMe != null) {
+                widget.onOpenNearMe!();
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const MarketNearMeScreen(isFarmer: false),
+                  ),
+                );
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [_kGreenDark, _kGreen],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: _kGreen.withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.near_me_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              "Market Near Me",
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            SizedBox(width: 6),
+                            Icon(
+                              Icons.stars_rounded,
+                              size: 14,
+                              color: Color(0xFFFDE047),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 3),
+                        Text(
+                          "Discover nearby fish farms, farmers & suppliers with GPS",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.arrow_forward_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+
       // ── Search + filters ──────────────────────────────────────────────────
       SliverToBoxAdapter(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bluefarm/services/ui_feedback_service.dart';
 
-import '../theme/app_theme.dart';
 import '../widgets/bounce_button.dart';
 import 'buyer_shell.dart';
 import 'farmer_info_screen.dart';
@@ -100,12 +99,15 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     // Ensure we only build this screen if authenticated
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.oceanGradient,
-        ),
-        child: SafeArea(
-          child: Stack(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'lib/assets/bg-screens.png',
+            fit: BoxFit.cover,
+          ),
+          SafeArea(
+            child: Stack(
             children: [
               Center(
                 child: SingleChildScrollView(
@@ -209,8 +211,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
             ],
           ),
         ),
-      ),
-    );
+      ],
+    ),
+  );
   }
 }
 

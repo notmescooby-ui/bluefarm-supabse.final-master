@@ -549,22 +549,31 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FB),
+      extendBodyBehindAppBar: true,
       appBar: _role == null
           ? AppBar(
               backgroundColor: Colors.transparent,
               elevation: 0,
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.logout_rounded, color: Colors.red),
+                  icon: const Icon(Icons.logout_rounded, color: Colors.white),
                   tooltip: 'Sign Out',
                   onPressed: () => AuthRedirectService.signOutToRoleChooser(context),
                 )
               ],
             )
           : null,
-      body: SafeArea(
-        child: _role == null ? _buildRoleSelection() : _buildForm(),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'lib/assets/bg-screens.png',
+            fit: BoxFit.cover,
+          ),
+          SafeArea(
+            child: _role == null ? _buildRoleSelection() : _buildForm(),
+          ),
+        ],
       ),
     );
   }
@@ -603,12 +612,12 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
                     style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF0D2B4E))),
+                        color: Colors.white)),
                 const SizedBox(height: 8),
                 Text('Choose your role to finish registration',
                     textAlign: TextAlign.center,
                     style:
-                        TextStyle(color: Colors.grey.shade600, fontSize: 15)),
+                        TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 15)),
                 const SizedBox(height: 40),
                 _roleCard(
                   role: 'farmer',
@@ -720,12 +729,12 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isFarmer
-              ? [const Color(0xFF1565C0), const Color(0xFF0097A7)]
-              : [const Color(0xFF2E7D32), const Color(0xFF00897B)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        color: Colors.black.withValues(alpha: 0.25),
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.white.withValues(alpha: 0.15),
+            width: 1,
+          ),
         ),
       ),
       child: Row(
@@ -994,7 +1003,7 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
           const SizedBox(height: 8),
           Text('📍 $region',
               style: const TextStyle(
-                  fontWeight: FontWeight.bold, color: Colors.teal)),
+                  fontWeight: FontWeight.bold, color: Colors.white)),
         ],
         const SizedBox(height: 14),
         SizedBox(
@@ -1006,11 +1015,14 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.my_location_rounded),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.my_location_rounded, color: Colors.white),
             label:
-                Text(locLoading ? 'Detecting...' : 'Use Current GPS Location'),
+                Text(locLoading ? 'Detecting...' : 'Use Current GPS Location',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
             style: OutlinedButton.styleFrom(
+              backgroundColor: Colors.white.withValues(alpha: 0.18),
+              side: const BorderSide(color: Colors.white70, width: 1.2),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
@@ -1053,12 +1065,22 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
       child: Row(
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 20, color: const Color(0xFF1565C0)),
+            Icon(icon, size: 20, color: Colors.white),
             const SizedBox(width: 8),
           ],
           Text(text,
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    color: Colors.black26,
+                    offset: Offset(0, 1),
+                    blurRadius: 3,
+                  ),
+                ],
+              )),
         ],
       ),
     );

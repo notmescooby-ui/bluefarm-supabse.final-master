@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bluefarm/services/auth_service.dart';
 import 'package:bluefarm/services/ui_feedback_service.dart';
-import '../theme/app_theme.dart';
 import '../widgets/bounce_button.dart';
 import 'signup_screen.dart';
 import 'otp_screen.dart';
@@ -141,12 +140,14 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: AppTheme.oceanGradient,
-        ),
-        child: SafeArea(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'lib/assets/bg-screens.png',
+            fit: BoxFit.cover,
+          ),
+          SafeArea(
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
@@ -392,7 +393,8 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
             ),
           ),
         ),
-      ),
-    );
+      ],
+    ),
+  );
   }
 }
