@@ -5,9 +5,11 @@ import '../providers/app_provider.dart';
 import '../models/sensor_data.dart';
 import 'recommendation_questionnaire_screen.dart';
 import 'market_near_me_screen.dart';
+import 'feeder_automate_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final Function(int)? onNavigateToTab;
+  const HomeScreen({super.key, this.onNavigateToTab});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -131,14 +133,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        Text(
-                          headline,
-                          style: const TextStyle(
-                            fontSize: 48, // Large display font
-                            height: 0.95,
-                            letterSpacing: -1.0,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF0F1A2A), // Ink
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            headline,
+                            style: const TextStyle(
+                              fontSize: 36,
+                              height: 1.05,
+                              letterSpacing: -0.5,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F1A2A),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -257,26 +263,322 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 20),
                     ],
 
-                    // Market Near Me Feature Card
-                    const Row(
+                    // Feeder Automation Section
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(Icons.location_on_rounded, size: 20, color: Color(0xFF1565C0)),
-                        SizedBox(width: 8),
-                        Text(
-                          "Market Near Me",
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D1F3C)),
+                        const Expanded(
+                          child: Row(
+                            children: [
+                              Icon(Icons.set_meal_rounded, size: 20, color: Color(0xFF1565C0)),
+                              SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  "Feeder Automation",
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D1F3C)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: store.isFeederOn
+                                ? const Color(0xFF059669).withValues(alpha: 0.12)
+                                : const Color(0xFF1565C0).withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircleAvatar(
+                                radius: 3,
+                                backgroundColor: store.isFeederOn
+                                    ? const Color(0xFF059669)
+                                    : const Color(0xFF1565C0),
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                store.isFeederOn ? "FEEDING ACTIVE" : "SMART IOT",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: store.isFeederOn
+                                      ? const Color(0xFF059669)
+                                      : const Color(0xFF1565C0),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
                     GestureDetector(
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const MarketNearMeScreen(isFarmer: true),
+                        if (widget.onNavigateToTab != null) {
+                          widget.onNavigateToTab!(1);
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const FeederAutomateScreen(),
+                            ),
+                          );
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: _cardDecoration(),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: store.isFeederOn
+                                          ? [const Color(0xFF059669), const Color(0xFF10B981)]
+                                          : [const Color(0xFF0F2B5B), const Color(0xFF1565C0)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: (store.isFeederOn
+                                                ? const Color(0xFF059669)
+                                                : const Color(0xFF1565C0))
+                                            .withValues(alpha: 0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.set_meal_rounded,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Flexible(
+                                            child: Text(
+                                              "Automated Pond Feeder",
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF0D1F3C),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: (store.isFeederOn
+                                                      ? const Color(0xFF059669)
+                                                      : const Color(0xFF6B7280))
+                                                  .withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              store.isFeederOn ? "ON" : "OFF",
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w800,
+                                                color: store.isFeederOn
+                                                    ? const Color(0xFF059669)
+                                                    : const Color(0xFF6B7280),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        store.isFeederOn
+                                            ? "Dispensing feed into pond · Gate ${store.servoAngle}°"
+                                            : "Schedule active · Hopper ${store.hopperLevel.toInt()}% full",
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF6B7280),
+                                          height: 1.35,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 16,
+                                  color: Color(0xFF9CA3AF),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            const Divider(height: 1, color: Color(0xFFF1F1F1)),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () {
+                                      if (store.isFeederOn) {
+                                        store.turnOffFeeder();
+                                      } else {
+                                        store.turnOnFeeder();
+                                      }
+                                    },
+                                    icon: Icon(
+                                      store.isFeederOn
+                                          ? Icons.power_settings_new_rounded
+                                          : Icons.play_arrow_rounded,
+                                      size: 16,
+                                      color: store.isFeederOn
+                                          ? const Color(0xFFDC2626)
+                                          : const Color(0xFF059669),
+                                    ),
+                                    label: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        store.isFeederOn ? "Turn OFF" : "Quick Feed ON",
+                                        maxLines: 1,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: store.isFeederOn
+                                              ? const Color(0xFFDC2626)
+                                              : const Color(0xFF059669),
+                                        ),
+                                      ),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      side: BorderSide(
+                                        color: store.isFeederOn
+                                            ? const Color(0xFFDC2626).withValues(alpha: 0.4)
+                                            : const Color(0xFF059669).withValues(alpha: 0.4),
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8)),
+                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      if (widget.onNavigateToTab != null) {
+                                        widget.onNavigateToTab!(1);
+                                      } else {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => const FeederAutomateScreen(),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    icon: const Icon(Icons.tune_rounded,
+                                        size: 16, color: Colors.white),
+                                    label: const FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        "Configure",
+                                        maxLines: 1,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF1565C0),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8)),
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Market Near Me Feature Card
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Expanded(
+                          child: Row(
+                            children: [
+                              Icon(Icons.location_on_rounded, size: 20, color: Color(0xFF1565C0)),
+                              SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  "Market Near Me",
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D1F3C)),
+                                ),
+                              ),
+                            ],
                           ),
-                        );
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1565C0).withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            "MAPS & BUYERS",
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1565C0),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: () {
+                        if (widget.onNavigateToTab != null) {
+                          widget.onNavigateToTab!(2);
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const MarketNearMeScreen(isFarmer: true),
+                            ),
+                          );
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.all(16),
@@ -303,12 +605,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                 children: [
                                   Row(
                                     children: [
-                                      Text(
-                                        "Find Local Markets & Buyers",
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF0D1F3C),
+                                      Expanded(
+                                        child: Text(
+                                          "Find Local Markets & Buyers",
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF0D1F3C),
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -316,6 +622,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   SizedBox(height: 4),
                                   Text(
                                     "Locate nearby fish collection centres, cold storage & registered buyers with GPS navigation",
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Color(0xFF6B7280),
@@ -488,6 +796,8 @@ class _StatCard extends StatelessWidget {
               children: [
                 Text(
                   label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
@@ -497,6 +807,8 @@ class _StatCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   "Safe: $safeRange",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 11,
                     color: Colors.grey,
@@ -505,6 +817,7 @@ class _StatCard extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -515,7 +828,7 @@ class _StatCard extends StatelessWidget {
                   Text(
                     value,
                     style: const TextStyle(
-                      fontSize: 22,
+                      fontSize: 20,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF0D1F3C),
                     ),
@@ -525,7 +838,7 @@ class _StatCard extends StatelessWidget {
                     Text(
                       unit,
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.w600,
                         color: Colors.grey,
                       ),

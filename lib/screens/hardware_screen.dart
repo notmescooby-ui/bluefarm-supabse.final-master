@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
+import 'feeder_automate_screen.dart';
 
 class HardwareScreen extends StatefulWidget {
   const HardwareScreen({super.key});
@@ -123,6 +124,29 @@ class _HardwareScreenState extends State<HardwareScreen> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const FeederAutomateScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.auto_mode_rounded, size: 16, color: Color(0xFF1565C0)),
+                      label: const Text(
+                        'Open Feeder Automation & Schedules',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1565C0),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),

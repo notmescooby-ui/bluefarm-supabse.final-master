@@ -33,6 +33,23 @@ class AppProvider extends ChangeNotifier {
   int get motorASpeed => _deviceStatus['motor_a'] == true ? 255 : 0;
   int get motorBSpeed => _deviceStatus['motor_b'] == true ? 255 : 0;
   int get servoAngle => _deviceStatus['feeder_angle'] as int? ?? 0;
+  bool get isFeederOn => (_deviceStatus['feeder_on'] == true) || ((_deviceStatus['feeder_angle'] as int? ?? 0) > 0);
+  bool get isFeederAutoMode => _deviceStatus['feeder_auto_mode'] as bool? ?? true;
+  double get hopperLevel => (_deviceStatus['hopper_level'] as num?)?.toDouble() ?? 85.0;
+
+  final List<Map<String, dynamic>> _feedingSchedules = [
+    {'id': '1', 'time': '07:30 AM', 'amount': 1.5, 'label': 'Morning Feed', 'enabled': true},
+    {'id': '2', 'time': '12:30 PM', 'amount': 2.0, 'label': 'Midday Feed', 'enabled': true},
+    {'id': '3', 'time': '05:30 PM', 'amount': 1.5, 'label': 'Evening Feed', 'enabled': true},
+  ];
+  List<Map<String, dynamic>> get feedingSchedules => _feedingSchedules;
+
+  final List<Map<String, dynamic>> _feedingLogs = [
+    {'time': 'Today, 12:30 PM', 'amount': '2.0 kg', 'mode': 'Automated', 'status': 'Success'},
+    {'time': 'Today, 07:30 AM', 'amount': '1.5 kg', 'mode': 'Automated', 'status': 'Success'},
+    {'time': 'Yesterday, 05:30 PM', 'amount': '1.5 kg', 'mode': 'Manual', 'status': 'Success'},
+  ];
+  List<Map<String, dynamic>> get feedingLogs => _feedingLogs;
 
   Future<void> updateMotorA(int speed) async {
     await updateMotorSpeed('a', speed);
@@ -44,6 +61,73 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> updateServo(int angle) async {
     await updateServoAngle(angle);
+  }
+
+  Future<void> turnOnFeeder() async {
+    _deviceStatus['feeder_on'] = true;
+    _deviceStatus['feeder_angle'] = 90;
+    if (_feedingLogs.isEmpty || _feedingLogs.first['status'] != 'Active') {
+      _feedingLogs.insert(0, {
+        'time': 'Just now',
+        'amount': 'Dispensing...',
+        'mode': 'Manual Direct',
+        'status': 'Active',
+      });
+    }
+    double currentLevel = hopperLevel;
+    if (currentLevel > 0.5) {
+      _deviceStatus['hopper_level'] = (currentLevel - 0.5).clamp(0.0, 100.0);
+    }
+    notifyListeners();
+  }
+
+  Future<void> turnOffFeeder() async {
+    _deviceStatus['feeder_on'] = false;
+    _deviceStatus['feeder_angle'] = 0;
+    if (_feedingLogs.isNotEmpty && _feedingLogs.first['status'] == 'Active') {
+      _feedingLogs[0] = {
+        'time': 'Just now',
+        'amount': '1.0 kg',
+        'mode': 'Manual Direct',
+        'status': 'Success',
+      };
+    }
+    notifyListeners();
+  }
+
+  Future<void> toggleFeederAutoMode(bool enabled) async {
+    _deviceStatus['feeder_auto_mode'] = enabled;
+    notifyListeners();
+  }
+
+  Future<void> addFeedingSchedule(String label, String time, double amount) async {
+    _feedingSchedules.add({
+      'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      'label': label,
+      'time': time,
+      'amount': amount,
+      'enabled': true,
+    });
+    notifyListeners();
+  }
+
+  Future<void> toggleSchedule(int index, bool enabled) async {
+    if (index >= 0 && index < _feedingSchedules.length) {
+      _feedingSchedules[index]['enabled'] = enabled;
+      notifyListeners();
+    }
+  }
+
+  Future<void> removeSchedule(int index) async {
+    if (index >= 0 && index < _feedingSchedules.length) {
+      _feedingSchedules.removeAt(index);
+      notifyListeners();
+    }
+  }
+
+  Future<void> refillHopper() async {
+    _deviceStatus['hopper_level'] = 100.0;
+    notifyListeners();
   }
 
 

@@ -48,7 +48,7 @@ class _AnimatedBannerState extends State<AnimatedBanner> with SingleTickerProvid
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        height: 180,
+        constraints: const BoxConstraints(minHeight: 160),
         width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
@@ -61,32 +61,35 @@ class _AnimatedBannerState extends State<AnimatedBanner> with SingleTickerProvid
           ],
         ),
         child: Stack(
-          fit: StackFit.expand,
           children: [
             // Background Image with Ken Burns effect
-            AnimatedBuilder(
-              animation: _ctrl,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _scale.value,
-                  child: Image.asset(
-                    widget.imagePath,
-                    fit: BoxFit.cover,
-                  ),
-                );
-              },
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _ctrl,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: _scale.value,
+                    child: Image.asset(
+                      widget.imagePath,
+                      fit: BoxFit.cover,
+                    ),
+                  );
+                },
+              ),
             ),
             
             // Dark Gradient Overlay
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.75),
-                    Colors.black.withValues(alpha: 0.2),
-                  ],
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.8),
+                      Colors.black.withValues(alpha: 0.25),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -95,37 +98,41 @@ class _AnimatedBannerState extends State<AnimatedBanner> with SingleTickerProvid
             FadeTransition(
               opacity: _opacity,
               child: widget.overlayContent ?? Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       widget.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 22,
+                        fontSize: 20,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
                       widget.subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.85),
-                        fontSize: 14,
+                        fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: widget.onCtaPressed,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black87,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),

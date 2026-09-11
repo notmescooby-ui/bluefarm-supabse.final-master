@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 
 import 'home_screen.dart';
+import 'feeder_automate_screen.dart';
 import 'knowledge_screen.dart';
 import 'insights_screen.dart';
 import 'harvest_screen.dart';
@@ -35,13 +36,16 @@ class _MainShellState extends State<MainShell> {
         children: [
           IndexedStack(
             index: _currentIndex,
-            children: const [
-              HomeScreen(),
-              MarketNearMeScreen(isFarmer: true),
-              HarvestScreen(),
-              InsightsScreen(),
-              KnowledgeScreen(),
-              SettingsScreen(),
+            children: [
+              HomeScreen(
+                onNavigateToTab: (index) => setState(() => _currentIndex = index),
+              ),
+              const FeederAutomateScreen(isTab: true),
+              const MarketNearMeScreen(isFarmer: true),
+              const HarvestScreen(),
+              const InsightsScreen(),
+              const KnowledgeScreen(),
+              const SettingsScreen(),
             ],
           ),
 
@@ -52,10 +56,10 @@ class _MainShellState extends State<MainShell> {
             right: 0,
             child: Container(
               padding: EdgeInsets.only(
-                top: 8,
-                bottom: 8 + MediaQuery.of(context).padding.bottom,
-                left: 8,
-                right: 8,
+                top: 7,
+                bottom: 7 + MediaQuery.of(context).padding.bottom,
+                left: 4,
+                right: 4,
               ),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -84,39 +88,46 @@ class _MainShellState extends State<MainShell> {
                     onTap: () => setState(() => _currentIndex = 0),
                   ),
                   _buildNavItem(
+                    icon: Icons.set_meal_rounded,
+                    inactiveIcon: Icons.set_meal_outlined,
+                    label: 'Feeder',
+                    isActive: _currentIndex == 1,
+                    onTap: () => setState(() => _currentIndex = 1),
+                  ),
+                  _buildNavItem(
                     icon: Icons.near_me_rounded,
                     inactiveIcon: Icons.near_me_outlined,
                     label: 'Near Me',
-                    isActive: _currentIndex == 1,
-                    onTap: () => setState(() => _currentIndex = 1),
+                    isActive: _currentIndex == 2,
+                    onTap: () => setState(() => _currentIndex = 2),
                   ),
                   _buildNavItem(
                     icon: Icons.inventory_2_rounded,
                     inactiveIcon: Icons.inventory_2_outlined,
                     label: 'Harvest',
-                    isActive: _currentIndex == 2,
-                    onTap: () => setState(() => _currentIndex = 2),
+                    isActive: _currentIndex == 3,
+                    onTap: () => setState(() => _currentIndex = 3),
                   ),
                   _buildNavItem(
                     icon: Icons.show_chart_rounded,
                     inactiveIcon: Icons.show_chart_rounded,
                     label: 'Insights',
-                    isActive: _currentIndex == 3,
-                    onTap: () => setState(() => _currentIndex = 3),
+                    isActive: _currentIndex == 4,
+                    onTap: () => setState(() => _currentIndex = 4),
                   ),
                   _buildNavItem(
                     icon: Icons.auto_awesome_rounded,
                     inactiveIcon: Icons.auto_awesome_outlined,
                     label: 'Learn',
-                    isActive: _currentIndex == 4,
-                    onTap: () => setState(() => _currentIndex = 4),
+                    isActive: _currentIndex == 5,
+                    onTap: () => setState(() => _currentIndex = 5),
                   ),
                   _buildNavItem(
                     icon: Icons.account_circle_rounded,
                     inactiveIcon: Icons.account_circle_outlined,
                     label: 'Account',
-                    isActive: _currentIndex == 5,
-                    onTap: () => setState(() => _currentIndex = 5),
+                    isActive: _currentIndex == 6,
+                    onTap: () => setState(() => _currentIndex = 6),
                   ),
                 ],
               ),
@@ -139,22 +150,27 @@ class _MainShellState extends State<MainShell> {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(isActive ? icon : inactiveIcon, size: 24, color: color),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                color: color,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 1.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(isActive ? icon : inactiveIcon, size: 21, color: color),
+              const SizedBox(height: 3),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                    color: color,
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
