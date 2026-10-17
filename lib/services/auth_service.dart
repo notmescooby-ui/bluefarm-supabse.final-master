@@ -29,8 +29,8 @@ class AuthService {
 
   // Use the Web Client ID for Google Auth
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: kIsWeb ? '52765421109-bb752c0s1v5sah837jf999io3lbp1rgg.apps.googleusercontent.com' : null,
-    serverClientId: '52765421109-bb752c0s1v5sah837jf999io3lbp1rgg.apps.googleusercontent.com',
+    clientId: kIsWeb ? '52765421109-smkmmqvfk7s7pba3mscpgsogs61fc94v.apps.googleusercontent.com' : null,
+    serverClientId: '52765421109-smkmmqvfk7s7pba3mscpgsogs61fc94v.apps.googleusercontent.com',
     scopes: ['email'],
   );
 
