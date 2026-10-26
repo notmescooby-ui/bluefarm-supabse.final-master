@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/auth_redirect_service.dart';
 import 'edit_profile_screen.dart';
 import 'market_near_me_screen.dart';
+import 'privacy_policy_screen.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 //  BUYER SHELL — Quick-commerce fish marketplace
 //  Tabs: Market | Orders (Cart) | Profile
@@ -2533,6 +2534,13 @@ class _ProfileTabState extends State<_ProfileTab> {
                       );
                     }
                   }
+                }),
+                Divider(height: 1, color: Colors.grey.shade200),
+                _buildSettingTile(Icons.privacy_tip_outlined, 'Privacy Policy', onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+                  );
                 }),
               ]),
             ),

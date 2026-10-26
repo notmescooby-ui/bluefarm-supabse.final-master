@@ -3,6 +3,7 @@ import '../services/auth_redirect_service.dart';
 import '../services/ui_feedback_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'edit_profile_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -56,7 +57,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ]),
                   const SizedBox(height: 24),
-                  _buildSectionTitle('SUPPORT'),
+                  _buildSectionTitle('SUPPORT & LEGAL'),
                   _buildSettingsCard(context, [
                     _buildListTile(
                       context,
@@ -80,6 +81,21 @@ class SettingsScreen extends StatelessWidget {
                             UIFeedback.showError(context, 'Could not open email client');
                           }
                         }
+                      },
+                    ),
+                    _buildDivider(),
+                    _buildListTile(
+                      context,
+                      icon: Icons.privacy_tip_outlined,
+                      title: 'Privacy Policy',
+                      subtitle: 'Learn how your data & location are protected',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PrivacyPolicyScreen(),
+                          ),
+                        );
                       },
                     ),
                   ]),

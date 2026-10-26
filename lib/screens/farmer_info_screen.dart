@@ -13,6 +13,7 @@ import 'device_connect_screen.dart';
 import '../services/auth_redirect_service.dart';
 
 import '../services/aadhaar_scanner_service.dart';
+import 'privacy_policy_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  DROPDOWN DATA
@@ -426,11 +427,34 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
               const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  'Upload a clear photo of your Aadhaar card.\nWe use ML to verify details securely.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Colors.grey.shade600, fontSize: 13, height: 1.5),
+                child: Column(
+                  children: [
+                    Text(
+                      'Upload a clear photo of your Aadhaar card.\nWe use ML to verify details securely.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.grey.shade600, fontSize: 13, height: 1.5),
+                    ),
+                    const SizedBox(height: 6),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const PrivacyPolicyScreen()),
+                        );
+                      },
+                      child: const Text(
+                        'Read our Privacy Policy',
+                        style: TextStyle(
+                          color: Color(0xFF1565C0),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),
