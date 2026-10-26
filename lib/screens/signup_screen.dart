@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:bluefarm/services/auth_service.dart';
 import 'package:bluefarm/services/ui_feedback_service.dart';
+import 'package:bluefarm/services/demo_mode_service.dart';
 import '../widgets/bounce_button.dart';
 import 'otp_screen.dart';
 import 'privacy_policy_screen.dart';
@@ -402,7 +403,69 @@ class _SignupScreenState extends State<SignupScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 20),
+                    // Reviewer Demo Mode Button
+                    FadeTransition(
+                      opacity: _fadeAt(0.5, 0.9),
+                      child: SlideTransition(
+                        position: _slideAt(0.5, 0.9),
+                        child: BounceButton(
+                          onPressed: () {
+                            DemoModeService.startDemoSession(context, role: 'farmer');
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFF93C5FD), width: 1.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.06),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.verified_user_rounded,
+                                  color: Color(0xFF1565C0),
+                                  size: 20,
+                                ),
+                                SizedBox(width: 10),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      "Explore Demo / Reviewer Mode",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF0F2B5B),
+                                      ),
+                                    ),
+                                    Text(
+                                      "Google Play Review • Sample Data",
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF1565C0),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     FadeTransition(
                       opacity: _fadeAt(0.6, 1.0),
                       child: TextButton(

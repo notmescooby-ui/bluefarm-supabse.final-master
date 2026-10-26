@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bluefarm/services/ui_feedback_service.dart';
+import 'package:bluefarm/services/demo_mode_service.dart';
 
 import '../widgets/bounce_button.dart';
 import 'buyer_shell.dart';
@@ -21,6 +22,12 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   Future<void> _continueAs(String role) async {
     if (_loading) return;
     setState(() => _loading = true);
+
+    if (DemoModeService.isDemoMode) {
+      await DemoModeService.startDemoSession(context, role: role);
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
 
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {

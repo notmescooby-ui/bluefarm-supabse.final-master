@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:bluefarm/services/auth_service.dart';
 import 'package:bluefarm/services/ui_feedback_service.dart';
+import 'package:bluefarm/services/demo_mode_service.dart';
 import '../widgets/bounce_button.dart';
 import 'signup_screen.dart';
 import 'otp_screen.dart';
@@ -15,8 +16,11 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
   final identifierController = TextEditingController();
+  final passwordController = TextEditingController();
   
   bool _loading = false;
+  bool _usePasswordMode = false;
+  bool _obscurePassword = true;
   late AnimationController _entryCtrl;
 
   @override
@@ -26,12 +30,28 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     )..forward();
+
+    identifierController.addListener(_onIdentifierChanged);
+  }
+
+  void _onIdentifierChanged() {
+    final text = identifierController.text.trim().toLowerCase();
+    if (DemoModeService.isReviewerIdentifier(text) && !_usePasswordMode) {
+      setState(() {
+        _usePasswordMode = true;
+        if (passwordController.text.isEmpty) {
+          passwordController.text = DemoModeService.reviewerPassword;
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
+    identifierController.removeListener(_onIdentifierChanged);
     _entryCtrl.dispose();
     identifierController.dispose();
+    passwordController.dispose();
     super.dispose();
   }
 
@@ -66,6 +86,204 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       }
     }
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _signInWithPassword() async {
+    final identifier = identifierController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (identifier.isEmpty) {
+      UIFeedback.showInfo(context, "Please enter your email or username");
+      return;
+    }
+    if (password.isEmpty) {
+      UIFeedback.showInfo(context, "Please enter your password");
+      return;
+    }
+
+    setState(() => _loading = true);
+
+    // 1. Reviewer / Demo bypass
+    if (DemoModeService.isReviewerCredential(identifier, password) ||
+        (DemoModeService.isReviewerIdentifier(identifier) &&
+            password == DemoModeService.reviewerPassword)) {
+      UIFeedback.showSuccess(context, "Reviewer demo session activated!");
+      await DemoModeService.startDemoSession(context, role: 'farmer');
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+
+    // 2. Standard authentication
+    try {
+      final res = await AuthService().signInWithEmailAndPassword(
+        identifier: identifier,
+        password: password,
+      );
+      if (res.user != null && mounted) {
+        await AuthService().handleLoginRedirect(context);
+      }
+    } catch (e) {
+      // If reviewer account isn't yet created in Supabase auth, fall back safely
+      if (DemoModeService.isReviewerIdentifier(identifier)) {
+        if (mounted) {
+          UIFeedback.showSuccess(context, "Reviewer demo session activated!");
+          await DemoModeService.startDemoSession(context, role: 'farmer');
+        }
+      } else if (mounted) {
+        UIFeedback.showError(context, "Login failed: ${e.toString()}");
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _showReviewerDemoSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.verified_user_rounded,
+                    color: Color(0xFF1565C0),
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Google Play Reviewer / Demo",
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F2B5B),
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        "Sample data • Non-sensitive evaluation mode",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: const Text(
+                "This mode allows Google reviewers to test farm profiles, IoT telemetry, feeding logs, and market tools with sample data. Demo mode does NOT grant real government Aadhaar verification or certify identity.",
+                style: TextStyle(
+                  fontSize: 12.5,
+                  height: 1.5,
+                  color: Color(0xFF334155),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            BounceButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                DemoModeService.startDemoSession(context, role: 'farmer');
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1565C0),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.water_drop_rounded, color: Colors.white, size: 20),
+                    SizedBox(width: 10),
+                    Text(
+                      "Explore as Aquaculture Farmer (Demo)",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            BounceButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                DemoModeService.startDemoSession(context, role: 'buyer');
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.storefront_rounded, color: Color(0xFF0F2B5B), size: 20),
+                    SizedBox(width: 10),
+                    Text(
+                      "Explore as Fish Buyer / Exporter (Demo)",
+                      style: TextStyle(
+                        color: Color(0xFF0F2B5B),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _sendOtp() async {
@@ -248,11 +466,70 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                   contentPadding: const EdgeInsets.symmetric(vertical: 18),
                                 ),
                               ),
-                              const SizedBox(height: 24),
+                              if (_usePasswordMode || DemoModeService.isReviewerIdentifier(identifierController.text)) ...[
+                                const SizedBox(height: 14),
+                                TextField(
+                                  controller: passwordController,
+                                  obscureText: _obscurePassword,
+                                  style: const TextStyle(
+                                    color: Color(0xFF0D1F3C),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: "Password",
+                                    hintStyle: TextStyle(
+                                      color: const Color(0xFF5A789E).withValues(alpha: 0.7),
+                                    ),
+                                    prefixIcon: const Icon(
+                                      Icons.lock_outline_rounded,
+                                      color: Color(0xFF5A789E),
+                                    ),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                        color: const Color(0xFF5A789E),
+                                      ),
+                                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                      borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                      borderSide: const BorderSide(color: Color(0xFF059669), width: 2),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 10),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _usePasswordMode = !_usePasswordMode;
+                                    });
+                                  },
+                                  child: Text(
+                                    _usePasswordMode ? "Sign in using OTP instead" : "Sign in with Password (Reviewer)",
+                                    style: const TextStyle(
+                                      color: Color(0xFF1565C0),
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
                               
                               // Login Button
                               BounceButton(
-                                onPressed: _loading ? null : _sendOtp,
+                                onPressed: _loading ? null : (_usePasswordMode ? _signInWithPassword : _sendOtp),
                                 child: Container(
                                   width: double.infinity,
                                   height: 56,
@@ -277,9 +554,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                             ),
                                           )
-                                        : const Text(
-                                            "GET OTP",
-                                            style: TextStyle(
+                                        : Text(
+                                            _usePasswordMode ? "SIGN IN" : "GET OTP",
+                                            style: const TextStyle(
                                               color: Colors.white,
                                               fontSize: 16,
                                               fontWeight: FontWeight.bold,
@@ -334,7 +611,69 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                       ),
                     ),
                     
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 20),
+
+                    // Google Play Reviewer / Demo Access Card Button
+                    FadeTransition(
+                      opacity: _fadeAt(0.35, 0.75),
+                      child: SlideTransition(
+                        position: _slideAt(0.35, 0.75),
+                        child: BounceButton(
+                          onPressed: () => _showReviewerDemoSheet(context),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFF93C5FD), width: 1.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.06),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.verified_user_rounded,
+                                  color: Color(0xFF1565C0),
+                                  size: 22,
+                                ),
+                                SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      "Explore Demo / Reviewer Mode",
+                                      style: TextStyle(
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF0F2B5B),
+                                      ),
+                                    ),
+                                    Text(
+                                      "Google Play Review • Sample Data & Mock Identity",
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        color: Color(0xFF1565C0),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 20),
                     
                     // Google Sign In Button
                     FadeTransition(

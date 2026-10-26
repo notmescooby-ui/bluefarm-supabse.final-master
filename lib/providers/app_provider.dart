@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/sensor_data.dart';
+import '../services/demo_mode_service.dart';
 
 class AppProvider extends ChangeNotifier {
   Future<void> loadAllData() async {
@@ -10,6 +11,21 @@ class AppProvider extends ChangeNotifier {
   
   Future<void> updateProfile(Map<String, dynamic> data) async {
     await updateUserProfile(data);
+  }
+
+  void setDemoProfile(Map<String, dynamic> profile) {
+    _userProfile = Map<String, dynamic>.from(profile);
+    _latestReading = SensorData(
+      createdAt: DateTime.now(),
+      ph: 7.4,
+      temperature: 28.5,
+      turbidity: 2.2,
+    );
+    _todayReadings = [_latestReading!];
+    _deviceStatus = {'motor_a': false, 'motor_b': false, 'feeder_angle': 0};
+    _isDeviceConnected = true;
+    _startSensorWatch();
+    notifyListeners();
   }
 
   Map<String, dynamic>? _userProfile;
@@ -154,6 +170,23 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      if (DemoModeService.isDemoMode) {
+        _userProfile ??= DemoModeService.demoRole == 'buyer'
+            ? DemoModeService.sampleBuyerProfile
+            : DemoModeService.sampleFarmerProfile;
+        _latestReading = SensorData(
+          createdAt: DateTime.now(),
+          ph: 7.4,
+          temperature: 28.5,
+          turbidity: 2.2,
+        );
+        _todayReadings = [_latestReading!];
+        _deviceStatus = {'motor_a': false, 'motor_b': false, 'feeder_angle': 0};
+        _isDeviceConnected = true;
+        _startSensorWatch();
+        return;
+      }
+
       final uid = Supabase.instance.client.auth.currentUser?.id;
       if (uid != null) {
         final data = await Supabase.instance.client.from('profiles').select().eq('id', uid).maybeSingle();
@@ -194,6 +227,12 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> updateUserProfile(Map<String, dynamic> data) async {
+    if (DemoModeService.isDemoMode) {
+      _userProfile = { ...?_userProfile, ...data };
+      notifyListeners();
+      return;
+    }
+
     final uid = Supabase.instance.client.auth.currentUser?.id;
     if (uid != null) {
       await Supabase.instance.client.from('profiles').update(data).eq('id', uid);

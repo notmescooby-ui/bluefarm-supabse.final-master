@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:bluefarm/services/auth_service.dart';
 import 'package:bluefarm/services/ui_feedback_service.dart';
+import 'package:bluefarm/services/demo_mode_service.dart';
 import '../widgets/bounce_button.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -71,6 +72,21 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
       return;
     }
     setState(() => _loading = true);
+
+    // Google Play Reviewer / Demo bypass
+    if (DemoModeService.isReviewerIdentifier(widget.identifier) ||
+        DemoModeService.isReviewerOtp(_otp)) {
+      setState(() => _verified = true);
+      _successCtrl.forward();
+      UIFeedback.showSuccess(context, "Reviewer Verification Successful!");
+
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
+
+      await DemoModeService.startDemoSession(context, role: 'farmer');
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
 
     try {
       final res = widget.isEmail 
@@ -158,15 +174,47 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                   const SizedBox(height: 24),
                   FadeTransition(
                     opacity: _fadAt(0.1, 0.5),
-                    child: Text(
-                      'Enter 6-digit code sent to\n${widget.identifier}',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: 16,
-                        height: 1.4,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
+                    child: Column(
+                      children: [
+                        Text(
+                          'Enter 6-digit code sent to\n${widget.identifier}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontSize: 16,
+                            height: 1.4,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        if (DemoModeService.isReviewerIdentifier(widget.identifier)) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Text(
+                              "Google Play Reviewer: Use test OTP 123456",
+                              style: TextStyle(
+                                color: Color(0xFF1565C0),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   const SizedBox(height: 36),

@@ -8,11 +8,13 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bluefarm/services/ui_feedback_service.dart';
+import 'package:provider/provider.dart';
 import 'buyer_shell.dart';
 import 'device_connect_screen.dart';
 import '../services/auth_redirect_service.dart';
-
 import '../services/aadhaar_scanner_service.dart';
+import '../services/demo_mode_service.dart';
+import '../providers/app_provider.dart';
 import 'privacy_policy_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,6 +117,7 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
   XFile? _aadhaarPhoto;
   bool _aadhaarVerified = false;
   bool _aadhaarVerifying = false;
+  bool _isDemoVerified = false;
   String? _aadhaarError;
   String? _aadhaarSuccess;
   bool _checkEmblem = false;
@@ -153,6 +156,31 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
     if (widget.role != null) {
       _role = widget.role;
       _fadeCtrl.forward();
+    }
+
+    if (DemoModeService.isDemoMode) {
+      _isDemoVerified = true;
+      _aadhaarVerified = true;
+      if (_role == 'farmer') {
+        _farmerNameCtrl.text = "Google Play Reviewer";
+        _farmNameCtrl.text = "BlueFarm Demo Aqua Farm";
+        _farmerAgeCtrl.text = "35";
+        _aadhaarCtrl.text = "0000 0000 1234";
+        _pincodeCtrl.text = "534202";
+        _region = "Bhimavaram, Andhra Pradesh, India";
+        _gpsCtrl.text = "Bhimavaram Rural Aquaculture Zone";
+        _farmSizeCtrl.text = "4.5";
+        _waterbodyType = "Brackish Water Pond";
+        _primarySpecies = "Vannamei Shrimp";
+        _stockingCtrl.text = "40";
+      } else if (_role == 'buyer') {
+        _buyerNameCtrl.text = "Google Play Reviewer";
+        _companyCtrl.text = "Aqua Exports Ltd (Demo)";
+        _buyerType = "Exporters / Processors";
+        _buyerPincodeCtrl.text = "530001";
+        _buyerRegion = "Visakhapatnam, Andhra Pradesh, India";
+        _buyerGpsCtrl.text = "Port Road, Visakhapatnam, India";
+      }
     }
   }
 
@@ -482,6 +510,20 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
                   _pickPhoto(ImageSource.gallery);
                 },
               ),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Color(0xFFEFF6FF),
+                  child: Icon(Icons.verified_user_rounded,
+                      color: Color(0xFF1565C0)),
+                ),
+                title: const Text('Use Sample Aadhaar (Reviewer Demo Mode)'),
+                subtitle: const Text(
+                    'Allows Google Play evaluation with sample data. Does not certify identity.'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _applyDemoVerification();
+                },
+              ),
               const SizedBox(height: 8),
             ],
           ),
@@ -490,11 +532,76 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
     );
   }
 
+  void _applyDemoVerification() {
+    setState(() {
+      if (_aadhaarCtrl.text.isEmpty) {
+        _aadhaarCtrl.text = "0000 0000 1234";
+      }
+      _aadhaarVerified = true;
+      _isDemoVerified = true;
+      _aadhaarSuccess = "Sample Verification Active (Demo Mode Only)";
+      _aadhaarError = null;
+      _checkEmblem = true;
+      _checkName = true;
+      _checkFormat = true;
+      _aadhaarVerifying = false;
+    });
+    UIFeedback.showSuccess(
+        context, "Sample verification applied for app evaluation");
+  }
+
   Future<void> _submit() async {
     setState(() => _submitting = true);
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) {
+        if (_isDemoVerified || DemoModeService.isDemoMode) {
+          DemoModeService.isDemoMode = true;
+          final demoProfile = _role == 'farmer'
+              ? {
+                  ...DemoModeService.sampleFarmerProfile,
+                  'full_name': _farmerNameCtrl.text.trim().isNotEmpty
+                      ? _farmerNameCtrl.text.trim()
+                      : 'Google Play Reviewer',
+                  'farm_name': _farmNameCtrl.text.trim().isNotEmpty
+                      ? _farmNameCtrl.text.trim()
+                      : 'BlueFarm Demo Aqua Farm',
+                  'pincode': _pincodeCtrl.text.trim(),
+                  'region': _region,
+                  'gps_address': _gpsCtrl.text.trim(),
+                }
+              : {
+                  ...DemoModeService.sampleBuyerProfile,
+                  'full_name': _buyerNameCtrl.text.trim().isNotEmpty
+                      ? _buyerNameCtrl.text.trim()
+                      : 'Google Play Reviewer',
+                  'company_name': _companyCtrl.text.trim().isNotEmpty
+                      ? _companyCtrl.text.trim()
+                      : 'Aqua Exports Ltd (Demo)',
+                  'pincode': _buyerPincodeCtrl.text.trim(),
+                  'region': _buyerRegion,
+                  'gps_address': _buyerGpsCtrl.text.trim(),
+                };
+
+          try {
+            context.read<AppProvider>().setDemoProfile(demoProfile);
+          } catch (_) {}
+
+          if (!mounted) return;
+          if (_role == 'farmer') {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const DeviceConnectScreen()),
+              (route) => false,
+            );
+          } else {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const BuyerShell()),
+              (route) => false,
+            );
+          }
+          return;
+        }
+
         if (mounted)
           UIFeedback.showError(
               context, 'Session expired. Please log in again.');
@@ -512,7 +619,12 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
           'phone': widget.phone,
           'email': widget.email ?? user.email,
           'role': 'farmer',
-          'aadhaar_verified': true,
+          'aadhaar_verified': _isDemoVerified ? false : true,
+          'is_demo': _isDemoVerified,
+          'demo_verified': _isDemoVerified,
+          'verification_note': _isDemoVerified
+              ? 'Demo account for Google Play review. Sample data only.'
+              : null,
           'pincode': _pincodeCtrl.text.trim(),
           'region': _region,
           'gps_address': _gpsCtrl.text.trim(),
@@ -523,7 +635,7 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
           'fish_species': _primarySpecies,
           'stocking_density': _stockingCtrl.text.trim(),
           'secondary_species': _secondaryCtrl.text.trim(),
-          'account_status': 'active',
+          'account_status': _isDemoVerified ? 'demo_review' : 'active',
         };
 
         await Supabase.instance.client
@@ -546,12 +658,17 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
           'phone': widget.phone,
           'email': widget.email ?? user.email,
           'role': 'buyer',
-          'aadhaar_verified': true,
+          'aadhaar_verified': _isDemoVerified ? false : true,
+          'is_demo': _isDemoVerified,
+          'demo_verified': _isDemoVerified,
+          'verification_note': _isDemoVerified
+              ? 'Demo account for Google Play review. Sample data only.'
+              : null,
           'buyer_type': _buyerType,
           'pincode': _buyerPincodeCtrl.text.trim(),
           'region': _buyerRegion,
           'gps_address': _buyerGpsCtrl.text.trim(),
-          'account_status': 'active',
+          'account_status': _isDemoVerified ? 'demo_review' : 'active',
         }, onConflict: 'id');
 
         if (!mounted) return;

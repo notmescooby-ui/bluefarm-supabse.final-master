@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_redirect_service.dart';
 import '../services/ui_feedback_service.dart';
+import '../services/demo_mode_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'edit_profile_screen.dart';
 import 'privacy_policy_screen.dart';
@@ -39,6 +40,33 @@ class SettingsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (DemoModeService.isDemoMode) ...[
+                    _buildSectionTitle('GOOGLE PLAY REVIEW STATUS'),
+                    _buildSettingsCard(context, [
+                      _buildListTile(
+                        context,
+                        icon: Icons.shield_outlined,
+                        title: 'Demo Reviewer Mode Active',
+                        subtitle:
+                            'Sample evaluation data • Not legally certified',
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text('DEMO',
+                              style: TextStyle(
+                                  color: Color(0xFF1565C0),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11)),
+                        ),
+                        onTap: () {},
+                      ),
+                    ]),
+                    const SizedBox(height: 24),
+                  ],
                   _buildSectionTitle('ACCOUNT'),
                   _buildSettingsCard(context, [
                     _buildListTile(
@@ -111,6 +139,10 @@ class SettingsScreen extends StatelessWidget {
                       onTap: () async {
                         final confirm = await _showLogoutDialog(context);
                         if (confirm == true && context.mounted) {
+                          if (DemoModeService.isDemoMode) {
+                            DemoModeService.exitDemoMode(context);
+                            return;
+                          }
                           await AuthRedirectService.signOutToRoleChooser(
                               context);
                           if (context.mounted) {
@@ -169,6 +201,7 @@ class SettingsScreen extends StatelessWidget {
     required String title,
     required String subtitle,
     bool isDestructive = false,
+    Widget? trailing,
     required VoidCallback onTap,
   }) {
     final color =
@@ -220,8 +253,9 @@ class SettingsScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded,
-                  size: 20, color: Color(0xFFE5E5E0)),
+              trailing ??
+                  const Icon(Icons.chevron_right_rounded,
+                      size: 20, color: Color(0xFFE5E5E0)),
             ],
           ),
         ),

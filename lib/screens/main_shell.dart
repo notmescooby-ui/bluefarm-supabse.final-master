@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'settings_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../services/demo_mode_service.dart';
 
 import 'home_screen.dart';
 import 'feeder_automate_screen.dart';
@@ -48,6 +49,66 @@ class _MainShellState extends State<MainShell> {
               const SettingsScreen(),
             ],
           ),
+
+          if (DemoModeService.isDemoMode)
+            Positioned(
+              top: MediaQuery.of(context).padding.top,
+              left: 0,
+              right: 0,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    border: const Border(
+                      bottom: BorderSide(color: Color(0xFFBFDBFE), width: 1),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, size: 15, color: Color(0xFF1565C0)),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          "Demo Review Mode • Sample Data (Identity Not Certified)",
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF1E3A8A),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => DemoModeService.exitDemoMode(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1565C0),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            "Exit Demo",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
           // Bottom Navigation Bar
           Positioned(

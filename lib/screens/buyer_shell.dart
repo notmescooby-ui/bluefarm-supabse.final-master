@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/auth_redirect_service.dart';
+import '../services/demo_mode_service.dart';
 import 'edit_profile_screen.dart';
 import 'market_near_me_screen.dart';
 import 'privacy_policy_screen.dart';
@@ -158,6 +159,51 @@ class _BuyerShellState extends State<BuyerShell> {
       backgroundColor: _kBg,
       body: Column(
         children: [
+          if (DemoModeService.isDemoMode)
+            Container(
+              color: const Color(0xFFEFF6FF),
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 4,
+                bottom: 6,
+                left: 12,
+                right: 12,
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, size: 15, color: Color(0xFF1565C0)),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      "Demo Review Mode • Buyer Sample Data (Identity Not Certified)",
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF1E3A8A),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => DemoModeService.exitDemoMode(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1565C0),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        "Exit Demo",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           // ── Thin green identity strip (shown for Market, Orders, Profile) ──
           if (_tab != 1)
             _ThinGreenStrip(
