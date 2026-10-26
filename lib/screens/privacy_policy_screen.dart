@@ -123,36 +123,55 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 // Privacy Highlights Callout Box
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(10),
-                    border: const Border(
-                      left: BorderSide(color: primaryBlue, width: 4),
-                      top: BorderSide(color: Color(0xFFBFDBFE)),
-                      right: BorderSide(color: Color(0xFFBFDBFE)),
-                      bottom: BorderSide(color: Color(0xFFBFDBFE)),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFFBFDBFE),
+                      width: 1.5,
                     ),
                   ),
-                  child: const Column(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        "Privacy Highlights",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
+                      Container(
+                        margin: const EdgeInsets.only(top: 2),
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: primaryBlue.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.shield_outlined,
                           color: primaryBlue,
+                          size: 20,
                         ),
                       ),
-                      SizedBox(height: 6),
-                      Text(
-                        "Aadhaar document images and Aadhaar numbers are processed locally on your device for verification and are not uploaded to BlueFarm servers. BlueFarm stores a readable farm-location address and related region/PIN-code text. Live GPS coordinates used to find nearby markets are held temporarily in memory and are not stored in the BlueFarm database.",
-                        style: TextStyle(
-                          fontSize: 13,
-                          height: 1.6,
-                          color: Color(0xFF1E3A8A),
-                          fontWeight: FontWeight.w500,
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Privacy Highlights",
+                              style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w800,
+                                color: primaryBlue,
+                              ),
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              "Aadhaar document images and Aadhaar numbers are processed locally on your device for verification and are not uploaded to BlueFarm servers. BlueFarm stores a readable farm-location address and related region/PIN-code text. Live GPS coordinates used to find nearby markets are held temporarily in memory and are not stored in the BlueFarm database.",
+                              style: TextStyle(
+                                fontSize: 13,
+                                height: 1.6,
+                                color: Color(0xFF1E3A8A),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
