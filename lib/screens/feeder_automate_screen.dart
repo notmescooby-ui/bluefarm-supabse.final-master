@@ -431,15 +431,18 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  isOn ? "FEEDER ACTIVE · DISPENSING" : "FEEDER STANDBY · GATE CLOSED",
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.0,
-                    color: isOn
-                        ? const Color(0xFF059669)
-                        : const Color(0xFF4B5563),
+                Flexible(
+                  child: Text(
+                    isOn ? "FEEDER ACTIVE · DISPENSING" : "FEEDER STANDBY · GATE CLOSED",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.0,
+                      color: isOn
+                          ? const Color(0xFF059669)
+                          : const Color(0xFF4B5563),
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -739,24 +742,27 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Smart Auto-Schedule",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F1A2A),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Smart Auto-Schedule",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F1A2A),
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    "Feed fish according to scheduled timetable",
-                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                  ),
-                ],
+                    SizedBox(height: 2),
+                    Text(
+                      "Feed fish according to scheduled timetable",
+                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Switch.adaptive(
                 value: isAuto,
                 activeColor: const Color(0xFF1565C0),
@@ -897,24 +903,27 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Dispenser Gate Angle",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F1A2A),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Dispenser Gate Angle",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F1A2A),
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    "Servo Position (GPIO19 PWM)",
-                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                  ),
-                ],
+                    SizedBox(height: 2),
+                    Text(
+                      "Servo Position (GPIO19 PWM)",
+                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1033,24 +1042,27 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Hopper Capacity & Feed Level",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F1A2A),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Hopper Capacity & Feed Level",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F1A2A),
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    "Pellet Feed 3.0mm · 20 kg max capacity",
-                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                  ),
-                ],
+                    SizedBox(height: 2),
+                    Text(
+                      "Pellet Feed 3.0mm · 20 kg max capacity",
+                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Text(
                 "${hopperPct.toInt()}%",
                 style: TextStyle(

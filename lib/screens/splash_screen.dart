@@ -49,9 +49,13 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     });
   }
 
+  bool _transferredVideo = false;
+
   @override
   void dispose() {
-    _videoCtrl.dispose();
+    if (!_transferredVideo) {
+      _videoCtrl.dispose();
+    }
     _introCtrl.dispose();
     super.dispose();
   }
@@ -69,12 +73,13 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   }
 
   void _navigateToLanguage() {
+    _transferredVideo = true;
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 1400),
         reverseTransitionDuration: const Duration(milliseconds: 1400),
-        pageBuilder: (_, __, ___) => const LanguageScreen(),
+        pageBuilder: (_, __, ___) => LanguageScreen(videoController: _videoCtrl),
         transitionsBuilder: (_, animation, secondaryAnimation, child) {
           final fadeCurve = CurvedAnimation(parent: animation, curve: const Cubic(0.2, 0.8, 0.2, 1.0));
           final slideCurve = CurvedAnimation(parent: animation, curve: const Cubic(0.16, 1.0, 0.3, 1.0));

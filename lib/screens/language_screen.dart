@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 import '../widgets/bounce_button.dart';
 import '../localization/app_translations.dart';
 import 'login_screen.dart';
 
 class LanguageScreen extends StatefulWidget {
-  const LanguageScreen({super.key});
+  final VideoPlayerController? videoController;
+  const LanguageScreen({super.key, this.videoController});
 
   @override
   State<LanguageScreen> createState() => _LanguageScreenState();
@@ -12,6 +14,8 @@ class LanguageScreen extends StatefulWidget {
 
 class _LanguageScreenState extends State<LanguageScreen>
     with TickerProviderStateMixin {
+  VideoPlayerController? _videoCtrl;
+  bool _ownsController = false;
   String selectedLanguage = "en";
   late AnimationController _staggerCtrl;
   late AnimationController _buttonCtrl;
@@ -26,6 +30,23 @@ class _LanguageScreenState extends State<LanguageScreen>
   @override
   void initState() {
     super.initState();
+    if (widget.videoController != null) {
+      _videoCtrl = widget.videoController;
+      _ownsController = true;
+      if (!_videoCtrl!.value.isPlaying) {
+        _videoCtrl!.play();
+      }
+      _videoCtrl!.setLooping(true);
+    } else {
+      _videoCtrl = VideoPlayerController.asset('lib/assets/splash-screen.mp4')
+        ..initialize().then((_) {
+          _videoCtrl?.setLooping(true);
+          _videoCtrl?.play();
+          if (mounted) setState(() {});
+        });
+      _ownsController = true;
+    }
+
     _staggerCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -45,6 +66,9 @@ class _LanguageScreenState extends State<LanguageScreen>
   void dispose() {
     _staggerCtrl.dispose();
     _buttonCtrl.dispose();
+    if (_ownsController) {
+      _videoCtrl?.dispose();
+    }
     super.dispose();
   }
 
@@ -76,14 +100,41 @@ class _LanguageScreenState extends State<LanguageScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.black,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Background Image
-          Image.asset(
-            'lib/assets/bg-screens.png',
-            fit: BoxFit.cover,
+          // Background Video continuing from Splash Screen
+          if (_videoCtrl != null && _videoCtrl!.value.isInitialized)
+            SizedBox.expand(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _videoCtrl!.value.size.width,
+                  height: _videoCtrl!.value.size.height,
+                  child: VideoPlayer(_videoCtrl!),
+                ),
+              ),
+            )
+          else
+            Image.asset(
+              'lib/assets/bg-screens.png',
+              fit: BoxFit.cover,
+            ),
+
+          // Contrast overlay scrim so white text and cards pop over animated video frames
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.35),
+                  Colors.black.withValues(alpha: 0.15),
+                  Colors.black.withValues(alpha: 0.45),
+                ],
+              ),
+            ),
           ),
 
           // Content
