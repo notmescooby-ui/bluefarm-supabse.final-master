@@ -1,10 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/auth_redirect_service.dart';
 import '../services/demo_mode_service.dart';
+import '../models/payment_types.dart';
+import '../models/payment_order.dart';
+import '../services/payment_service.dart';
 import 'edit_profile_screen.dart';
 import 'market_near_me_screen.dart';
 import 'privacy_policy_screen.dart';
@@ -1238,20 +1242,41 @@ class _OrdersTabState extends State<_OrdersTab> {
   }
 
   Color _statusColor(String s) {
-    switch (s) {
-      case 'confirmed': return _kGreen;
-      case 'delivered': return Colors.blue;
-      case 'cancelled': return Colors.red;
-      default:          return _kAmber;
+    switch (s.toLowerCase()) {
+      case 'confirmed':
+      case 'paid':
+        return _kGreen;
+      case 'delivered':
+        return Colors.blue;
+      case 'cancelled':
+      case 'failed':
+        return Colors.red;
+      case 'verification_pending':
+      case 'verificationpending':
+        return Colors.deepPurple;
+      case 'initiated':
+        return Colors.indigo;
+      default:
+        return _kAmber;
     }
   }
 
   IconData _statusIcon(String s) {
-    switch (s) {
-      case 'confirmed': return Icons.check_circle_rounded;
-      case 'delivered': return Icons.local_shipping_rounded;
-      case 'cancelled': return Icons.cancel_rounded;
-      default:          return Icons.pending_rounded;
+    switch (s.toLowerCase()) {
+      case 'confirmed':
+      case 'paid':
+        return Icons.check_circle_rounded;
+      case 'delivered':
+        return Icons.local_shipping_rounded;
+      case 'cancelled':
+        return Icons.cancel_rounded;
+      case 'failed':
+        return Icons.error_outline_rounded;
+      case 'verification_pending':
+      case 'verificationpending':
+        return Icons.hourglass_top_rounded;
+      default:
+        return Icons.pending_rounded;
     }
   }
 
@@ -1559,10 +1584,22 @@ class _OrdersTabState extends State<_OrdersTab> {
                 delegate: SliverChildBuilderDelegate(
                   (_, i) {
                     final o = _pastOrders[i];
-                    final status = o['status'] as String? ?? 'pending';
-                    final color = _statusColor(status);
-                    final payment =
-                        o['payment_method'] as String? ?? 'cod';
+                    final rawStatus = o['status'] as String? ?? 'pending';
+                    final rawPaymentStatus = o['payment_status'] as String?;
+                    final payment = o['payment_method'] as String? ?? 'cod';
+                    final paymentStatus = PaymentStatusX.fromString(
+                      rawPaymentStatus,
+                      orderStatus: rawStatus,
+                      paymentMethod: payment,
+                    );
+                    final isVerifPending = paymentStatus == PaymentStatus.verificationPending;
+                    final isFailed = paymentStatus == PaymentStatus.failed;
+                    final displayStatus = isVerifPending
+                        ? 'Verif. Pending'
+                        : isFailed
+                            ? 'Failed'
+                            : (rawStatus.isNotEmpty ? rawStatus[0].toUpperCase() + rawStatus.substring(1) : 'Pending');
+                    final color = _statusColor(isVerifPending ? 'verification_pending' : (isFailed ? 'failed' : rawStatus));
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
                       decoration: BoxDecoration(
@@ -1585,7 +1622,7 @@ class _OrdersTabState extends State<_OrdersTab> {
                                   color: color.withValues(alpha: 0.1),
                                   borderRadius:
                                       BorderRadius.circular(12)),
-                              child: Icon(_statusIcon(status),
+                              child: Icon(_statusIcon(isVerifPending ? 'verification_pending' : rawStatus),
                                   color: color, size: 22)),
                           const SizedBox(width: 12),
                           Expanded(
@@ -1647,8 +1684,7 @@ class _OrdersTabState extends State<_OrdersTab> {
                                 border: Border.all(
                                     color: color.withValues(alpha: 0.3))),
                             child: Text(
-                              status[0].toUpperCase() +
-                                  status.substring(1),
+                              displayStatus,
                               style: TextStyle(
                                   color: color,
                                   fontSize: 11,
@@ -1775,29 +1811,23 @@ class _BillingPageState extends State<BillingPage>
     }
     setState(() => _placing = true);
     try {
-      final uid = _client.auth.currentUser?.id;
-      if (uid != null) {
-        for (final item in widget.cart) {
-          final orderData = {
-            'buyer_id':         uid,
-            'species':          item.species,
-            'farm_name':        item.farmName,
-            'quantity_kg':      item.quantityKg,
-            'price_per_kg':     item.pricePerKg,
-            'total_price':      item.subtotal,
-            'delivery_address': '${_addressCtrl.text.trim()}, ${_cityCtrl.text.trim()}',
-            'payment_method':   'cod',
-            'status':           'confirmed',
-          };
-          if (_isUuid(item.listingId)) {
-            orderData['listing_id'] = item.listingId;
-          }
-          if (_isUuid(item.farmerId)) {
-            orderData['farmer_id'] = item.farmerId;
-          }
-          await _client.from('orders').insert(orderData);
-        }
-      }
+      final uid = _client.auth.currentUser?.id ?? 'demo-buyer-id';
+      final cartMaps = widget.cart.map((item) => {
+        'species': item.species,
+        'farm_name': item.farmName,
+        'quantity_kg': item.quantityKg,
+        'price_per_kg': item.pricePerKg,
+        'subtotal': item.subtotal,
+        'listing_id': item.listingId,
+        'farmer_id': item.farmerId,
+      }).toList();
+
+      await PaymentService().placeCodOrder(
+        buyerId: uid,
+        cartItems: cartMaps,
+        deliveryAddress: '${_addressCtrl.text.trim()}, ${_cityCtrl.text.trim()}',
+      );
+
       setState(() { _placing = false; _placed = true; });
       _tickCtrl.forward();
       await Future.delayed(const Duration(seconds: 3));
@@ -1886,15 +1916,49 @@ class _BillingPageState extends State<BillingPage>
     );
   }
 
-  // ── UPI app chooser ──────────────────────────────────────────────────────
+  void _showUpiUnavailableDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.lock_clock_rounded, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Online Payment Notice',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          ],
+        ),
+        content: Text(
+          PaymentService().liveUpiUnavailableNotice,
+          style: const TextStyle(fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() => _paymentMethod = 'cod');
+            },
+            child: const Text('Select Cash on Delivery',
+                style: TextStyle(fontWeight: FontWeight.w700, color: _kGreen)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── UPI screen (Live Notice or Reviewer Demo) ─────────────────────────────
   Widget _upiScreen() {
+    // Lock mock/reviewer payment strictly to non-release builds
+    final isDemo = DemoModeService.isDemoMode && !kReleaseMode;
+
     return Scaffold(
       backgroundColor: _kBg,
       appBar: AppBar(
         backgroundColor: _kGreen,
         foregroundColor: Colors.white,
-        title: const Text('Choose UPI App',
-            style: TextStyle(
+        title: Text(isDemo ? 'UPI Payment (Reviewer Demo)' : 'Online Payment',
+            style: const TextStyle(
                 fontWeight: FontWeight.w800, fontSize: 16)),
         elevation: 0,
         leading: IconButton(
@@ -1927,185 +1991,240 @@ class _BillingPageState extends State<BillingPage>
                       color: _kGreen)),
             ]),
           ),
-          const SizedBox(height: 20),
-          const Text('Select your UPI app',
-              style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: _kText)),
-          const SizedBox(height: 14),
-          ..._upiApps().map(_upiAppTile),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-                color: const Color(0xFFFFFBEB),
-                borderRadius: BorderRadius.circular(10),
-                border:
-                    Border.all(color: _kAmber.withValues(alpha: 0.4))),
-            child: Row(
+          const SizedBox(height: 16),
+
+          if (!isDemo && !PaymentService().isLiveUpiConfigured) ...[
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7ED),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.orange.shade300),
+              ),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-              const Icon(Icons.info_outline_rounded,
-                  color: _kAmber, size: 16),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'You will be redirected to your UPI app to complete the payment of ₹${_grand.toStringAsFixed(0)}.',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.amber.shade800,
-                      height: 1.4),
-                ),
+                  Row(children: [
+                    Icon(Icons.lock_clock_rounded, color: Colors.orange.shade800),
+                    const SizedBox(width: 8),
+                    Text('Live UPI Gateway Pending',
+                        style: TextStyle(
+                            color: Colors.orange.shade900,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15)),
+                  ]),
+                  const SizedBox(height: 8),
+                  Text(
+                    PaymentService().liveUpiUnavailableNotice,
+                    style: TextStyle(
+                        color: Colors.orange.shade900, fontSize: 13, height: 1.4),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _paymentMethod = 'cod';
+                          _showUpi = false;
+                        });
+                      },
+                      icon: const Icon(Icons.check_circle_outline, size: 16),
+                      label: const Text('Back to Cash on Delivery (COD)'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _kGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ]),
-          ),
+            ),
+          ] else ...[
+            // Reviewer / Demo Mode
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3E8FF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.purple.shade200),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Icon(Icons.developer_mode_rounded,
+                        color: Colors.purple, size: 20),
+                    SizedBox(width: 8),
+                    Text('Google Reviewer / Demo Mode',
+                        style: TextStyle(
+                            color: Colors.purple,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14)),
+                  ]),
+                  SizedBox(height: 6),
+                  Text(
+                    'No real bank credentials or live money requests are executed. You can test the pending order creation and state machine transitions below without payment credentials.',
+                    style: TextStyle(color: Colors.purple, fontSize: 12, height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text('Test Payment Verification Scenarios',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: _kText)),
+            const SizedBox(height: 12),
+            _demoActionCard(
+              title: 'Simulate Verified Payment',
+              subtitle: 'Transitions order from verification_pending to paid & confirmed.',
+              icon: Icons.check_circle_rounded,
+              color: _kGreen,
+              onTap: _simulateDemoSuccess,
+            ),
+            const SizedBox(height: 10),
+            _demoActionCard(
+              title: 'Simulate Payment Failure',
+              subtitle: 'Transitions order to failed and safely retains cart items.',
+              icon: Icons.error_outline_rounded,
+              color: Colors.red,
+              onTap: _simulateDemoFailure,
+            ),
+            const SizedBox(height: 10),
+            _demoActionCard(
+              title: 'Cancel & Return to Cart',
+              subtitle: 'Aborts payment and returns to billing without fulfilling.',
+              icon: Icons.cancel_outlined,
+              color: Colors.grey,
+              onTap: () => setState(() => _showUpi = false),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  List<Map<String, dynamic>> _upiApps() => [
-        {
-          'name': 'Google Pay',
-          'emoji': '🇬',
-          'color': const Color(0xFF4285F4),
-          'scheme': 'gpay://upi/pay'
-        },
-        {
-          'name': 'PhonePe',
-          'emoji': '📱',
-          'color': const Color(0xFF5F259F),
-          'scheme': 'phonepe://pay'
-        },
-        {
-          'name': 'Paytm',
-          'emoji': '💰',
-          'color': const Color(0xFF00BAF2),
-          'scheme': 'paytmmp://pay'
-        },
-        {
-          'name': 'BHIM UPI',
-          'emoji': '🇮',
-          'color': const Color(0xFF1565C0),
-          'scheme': 'upi://pay'
-        },
-        {
-          'name': 'Amazon Pay',
-          'emoji': '🛒',
-          'color': const Color(0xFFFF9900),
-          'scheme': 'amazonpay://pay'
-        },
-        {
-          'name': 'Razorpay',
-          'emoji': '⚡',
-          'color': const Color(0xFF3395FF),
-          'scheme': 'razorpay://pay'
-        },
-        {
-          'name': 'PayPal',
-          'emoji': '🅿',
-          'color': const Color(0xFF003087),
-          'scheme': 'paypal://pay'
-        },
-        {
-          'name': 'Other UPI',
-          'emoji': '🔗',
-          'color': _kGreen,
-          'scheme': 'upi://pay'
-        },
-      ];
-
-  Widget _upiAppTile(Map<String, dynamic> app) {
+  Widget _demoActionCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
-      onTap: () =>
-          _launchUpi(app['scheme'] as String, app['name'] as String),
+      onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03), blurRadius: 6)
-            ]),
-        child: Row(children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-                color: (app['color'] as Color).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12)),
-            child: Center(
-              child: Text(app['emoji'] as String,
-                  style: const TextStyle(fontSize: 24)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 22),
             ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-              Text(app['name'] as String,
-                  style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: _kText)),
-              const Text('Tap to open app',
-                  style: TextStyle(fontSize: 11, color: _kMuted)),
-            ]),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-                color: (app['color'] as Color).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20)),
-            child: Text('Pay',
-                style: TextStyle(
-                    color: app['color'] as Color,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700)),
-          ),
-          const SizedBox(width: 6),
-          Icon(Icons.arrow_forward_ios_rounded,
-              size: 13, color: Colors.grey.shade400),
-        ]),
+                  Text(title,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: _kText)),
+                  const SizedBox(height: 2),
+                  Text(subtitle,
+                      style: const TextStyle(fontSize: 11, color: _kMuted)),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios_rounded,
+                size: 13, color: Colors.grey.shade400),
+          ],
+        ),
       ),
     );
   }
 
-  Future<void> _launchUpi(String scheme, String appName) async {
-    final amount = _grand.toStringAsFixed(2);
-    final upiUri = Uri.parse(
-        'upi://pay?pa=bluefarm@upi&pn=BlueFarm&am=$amount&cu=INR&tn=BlueFarmOrder');
-    final appUri = Uri.parse(
-        '$scheme?pa=bluefarm@upi&pn=BlueFarm&am=$amount&cu=INR&tn=BlueFarmOrder');
+  Future<void> _simulateDemoSuccess() async {
+    if (kReleaseMode) {
+      throw const PaymentSecurityException('Mock payment simulation is prohibited in release builds.');
+    }
+    setState(() => _placing = true);
     try {
-      bool launched = false;
-      if (scheme != 'upi://pay') {
-        launched = await launchUrl(appUri,
-            mode: LaunchMode.externalApplication);
+      final uid = _client.auth.currentUser?.id ?? 'demo-buyer-id';
+      final cartMaps = widget.cart.map((item) => {
+        'species': item.species,
+        'farm_name': item.farmName,
+        'quantity_kg': item.quantityKg,
+        'price_per_kg': item.pricePerKg,
+        'subtotal': item.subtotal,
+        'listing_id': item.listingId,
+        'farmer_id': item.farmerId,
+      }).toList();
+
+      // 1. Create pending order first
+      final pendingList = await PaymentService().createPendingUpiOrder(
+        buyerId: uid,
+        cartItems: cartMaps,
+        deliveryAddress: '${_addressCtrl.text.trim()}, ${_cityCtrl.text.trim()}',
+      );
+
+      // 2. Simulate mock verification in test/demo environment
+      for (final p in pendingList) {
+        final amountPaise = PaymentOrder.toPaise(
+            (p['total_price'] as num?)?.toDouble() ?? 0.0);
+        PaymentService().verifyMockPaymentForTesting(
+          currentOrder: p,
+          orderId: p['id']?.toString() ?? 'demo-order-1',
+          amountPaise: amountPaise,
+          currency: 'INR',
+          transactionRef: 'mock-tx-${DateTime.now().millisecondsSinceEpoch}',
+        );
       }
-      if (!launched) {
-        launched = await launchUrl(upiUri,
-            mode: LaunchMode.externalApplication);
-      }
-      if (!launched && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('$appName not installed. Try another app.'),
-            backgroundColor: Colors.orange));
+
+      setState(() {
+        _placing = false;
+        _placed = true;
+      });
+      _tickCtrl.forward();
+      await Future.delayed(const Duration(seconds: 3));
+      if (mounted) {
+        Navigator.of(context).pop();
+        widget.onOrderPlaced();
       }
     } catch (e) {
+      setState(() => _placing = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Could not open $appName'),
-            backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Demo payment error: $e'), backgroundColor: Colors.red),
+        );
       }
     }
+  }
+
+  void _simulateDemoFailure() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Payment failed (Simulated). Cart has been retained for retry.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    setState(() => _showUpi = false);
   }
 
   // ── Billing form ──────────────────────────────────────────────────────────
@@ -2231,6 +2350,7 @@ class _BillingPageState extends State<BillingPage>
                 color: const Color(0xFF2E7D32),
                 title: 'Cash on Delivery',
                 subtitle: 'Pay when your order arrives',
+                badgeText: 'RECOMMENDED',
               ),
               const SizedBox(height: 10),
               _paymentOption(
@@ -2238,7 +2358,11 @@ class _BillingPageState extends State<BillingPage>
                 icon: Icons.account_balance_wallet_outlined,
                 color: const Color(0xFF1565C0),
                 title: 'UPI Payment',
-                subtitle: 'GPay, PhonePe, Paytm & more',
+                subtitle: (DemoModeService.isDemoMode && !kReleaseMode)
+                    ? 'Reviewer Demo: Simulated state machine'
+                    : 'Online UPI unavailable (Merchant setup in progress)',
+                badgeText: (DemoModeService.isDemoMode && !kReleaseMode) ? 'DEMO' : 'UNAVAILABLE',
+                badgeColor: (DemoModeService.isDemoMode && !kReleaseMode) ? Colors.purple : Colors.grey,
               ),
 
               const SizedBox(height: 24),
@@ -2273,7 +2397,12 @@ class _BillingPageState extends State<BillingPage>
                         if (_paymentMethod == 'cod') {
                           _placeOrderCod();
                         } else {
-                          setState(() => _showUpi = true);
+                          final isReviewerDemo = DemoModeService.isDemoMode && !kReleaseMode;
+                          if (!PaymentService().isLiveUpiConfigured && !isReviewerDemo) {
+                            _showUpiUnavailableDialog();
+                          } else {
+                            setState(() => _showUpi = true);
+                          }
                         }
                       },
                 style: ElevatedButton.styleFrom(
@@ -2294,9 +2423,11 @@ class _BillingPageState extends State<BillingPage>
                             strokeWidth: 2.5, color: Colors.white))
                     : Text(
                         _paymentMethod == 'cod'
-                            ? 'Place Order · ₹${_grand.toStringAsFixed(0)}'
+                            ? 'Place Order (COD) · ₹${_grand.toStringAsFixed(0)}'
                             : _paymentMethod == 'upi'
-                                ? 'Continue to UPI · ₹${_grand.toStringAsFixed(0)}'
+                                ? (DemoModeService.isDemoMode
+                                    ? 'Continue to Demo UPI · ₹${_grand.toStringAsFixed(0)}'
+                                    : 'UPI Payment Unavailable')
                                 : 'Select Payment Method',
                         style: const TextStyle(
                             fontSize: 16,
@@ -2351,10 +2482,22 @@ class _BillingPageState extends State<BillingPage>
     required Color color,
     required String title,
     required String subtitle,
+    String? badgeText,
+    Color? badgeColor,
   }) {
     final selected = _paymentMethod == value;
+    final isUpi = value == 'upi';
+    final isReviewerDemo = DemoModeService.isDemoMode && !kReleaseMode;
+    final isLiveUpiDisabled = isUpi && !PaymentService().isLiveUpiConfigured && !isReviewerDemo;
+
     return GestureDetector(
-      onTap: () => setState(() => _paymentMethod = value),
+      onTap: () {
+        if (isLiveUpiDisabled) {
+          _showUpiUnavailableDialog();
+          return;
+        }
+        setState(() => _paymentMethod = value);
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(14),
@@ -2379,11 +2522,31 @@ class _BillingPageState extends State<BillingPage>
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-            Text(title,
-                style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: selected ? color : _kText)),
+            Row(children: [
+              Text(title,
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: selected ? color : _kText)),
+              if (badgeText != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: (badgeColor ?? color).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    badgeText,
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      color: badgeColor ?? color,
+                    ),
+                  ),
+                ),
+              ],
+            ]),
             Text(subtitle,
                 style: const TextStyle(fontSize: 12, color: _kMuted)),
           ])),

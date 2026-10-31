@@ -228,6 +228,7 @@ class _SignupScreenState extends State<SignupScreen>
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Image.network(
                                   "https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png",
@@ -243,12 +244,16 @@ class _SignupScreenState extends State<SignupScreen>
                                   ),
                                 ),
                                 const SizedBox(width: 14),
-                                const Text(
-                                  "Continue with Google",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF0D1F3C),
+                                const Flexible(
+                                  child: Text(
+                                    "Continue with Google",
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF0D1F3C),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -385,12 +390,16 @@ class _SignupScreenState extends State<SignupScreen>
                                                 size: 20,
                                               ),
                                               SizedBox(width: 10),
-                                              Text(
-                                                "Continue with Phone",
-                                                style: TextStyle(
-                                                  color: Color(0xFF1565C0),
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
+                                              Flexible(
+                                                child: Text(
+                                                  "Continue with Phone",
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    color: Color(0xFF1565C0),
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
                                                 ),
                                               ),
                                             ],
@@ -429,7 +438,6 @@ class _SignupScreenState extends State<SignupScreen>
                               ],
                             ),
                             child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
                                   Icons.verified_user_rounded,
@@ -437,27 +445,34 @@ class _SignupScreenState extends State<SignupScreen>
                                   size: 20,
                                 ),
                                 SizedBox(width: 10),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      "Explore Demo / Reviewer Mode",
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w800,
-                                        color: Color(0xFF0F2B5B),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        "Explore Demo / Reviewer Mode",
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF0F2B5B),
+                                        ),
                                       ),
-                                    ),
-                                    Text(
-                                      "Google Play Review • Sample Data",
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Color(0xFF1565C0),
-                                        fontWeight: FontWeight.w600,
+                                      SizedBox(height: 2),
+                                      Text(
+                                        "Google Play Review • Sample Data",
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Color(0xFF1565C0),
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),

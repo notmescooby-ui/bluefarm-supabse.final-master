@@ -6,7 +6,8 @@ import '../services/ui_feedback_service.dart';
 
 class FeederAutomateScreen extends StatefulWidget {
   final bool isTab;
-  const FeederAutomateScreen({super.key, this.isTab = false});
+  final VoidCallback? onBackToHome;
+  const FeederAutomateScreen({super.key, this.isTab = false, this.onBackToHome});
 
   @override
   State<FeederAutomateScreen> createState() => _FeederAutomateScreenState();
@@ -37,8 +38,13 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
   void _startBurstFeed(int seconds, AppProvider provider) {
     _burstTimer?.cancel();
     provider.turnOnFeeder();
-    UIFeedback.showSuccess(
-        context, "Feeder started for $seconds seconds burst feed");
+    if (provider.isDeviceConnected) {
+      UIFeedback.showSuccess(
+          context, "Feeder started for $seconds seconds burst feed");
+    } else {
+      UIFeedback.showInfo(
+          context, "Burst feed started ($seconds s, Simulator). Hardware link offline.");
+    }
 
     setState(() {
       _burstSecondsRemaining = seconds;
@@ -56,7 +62,11 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
           _burstSecondsRemaining = 0;
           timer.cancel();
           provider.turnOffFeeder();
-          UIFeedback.showInfo(context, "Burst feed completed. Gate closed.");
+          if (provider.isDeviceConnected) {
+            UIFeedback.showInfo(context, "Burst feed completed. Gate closed.");
+          } else {
+            UIFeedback.showInfo(context, "Burst feed completed (Simulator).");
+          }
         }
       });
     });
@@ -269,13 +279,21 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
             backgroundColor: Colors.white,
             elevation: 0,
             automaticallyImplyLeading: false,
-            leading: Navigator.canPop(context)
+            leading: (widget.onBackToHome != null)
                 ? IconButton(
                     icon: const Icon(Icons.arrow_back_ios_new_rounded,
                         color: Color(0xFF0F1A2A), size: 20),
-                    onPressed: () => Navigator.pop(context),
+                    tooltip: "Back to Home",
+                    onPressed: widget.onBackToHome,
                   )
-                : null,
+                : (Navigator.canPop(context)
+                    ? IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                            color: Color(0xFF0F1A2A), size: 20),
+                        tooltip: "Back",
+                        onPressed: () => Navigator.pop(context),
+                      )
+                    : null),
             title: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -305,26 +323,34 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF059669).withValues(alpha: 0.1),
+                  color: provider.isDeviceConnected
+                      ? const Color(0xFF059669).withValues(alpha: 0.1)
+                      : const Color(0xFFD97706).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: const Color(0xFF059669).withValues(alpha: 0.3),
+                    color: provider.isDeviceConnected
+                        ? const Color(0xFF059669).withValues(alpha: 0.3)
+                        : const Color(0xFFD97706).withValues(alpha: 0.3),
                   ),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     CircleAvatar(
                       radius: 4,
-                      backgroundColor: Color(0xFF059669),
+                      backgroundColor: provider.isDeviceConnected
+                          ? const Color(0xFF059669)
+                          : const Color(0xFFD97706),
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
-                      "ONLINE",
+                      provider.isDeviceConnected ? "ONLINE" : "SIMULATOR",
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF059669),
+                        color: provider.isDeviceConnected
+                            ? const Color(0xFF059669)
+                            : const Color(0xFFD97706),
                       ),
                     ),
                   ],
@@ -337,11 +363,56 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
               left: 20,
               right: 20,
               top: 16,
-              bottom: widget.isTab ? 110 : 40,
+              bottom: widget.isTab
+                  ? (85.0 + MediaQuery.of(context).padding.bottom)
+                  : (24.0 + MediaQuery.of(context).padding.bottom),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (!provider.isDeviceConnected) ...[
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline_rounded,
+                            size: 18, color: Color(0xFFD97706)),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Hardware Disconnected · Simulator Mode",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF92400E),
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                "Dispenser actions run in local simulation. Connect physical IoT controller (Raspberry Pi/ESP32) for live pond feeding.",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFFB45309),
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 // ─────────────────────────────────────────────────────────────
                 // HERO FEEDER SECTION WITH ICON & ON / OFF BUTTONS
                 // ─────────────────────────────────────────────────────────────
@@ -433,7 +504,13 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
-                    isOn ? "FEEDER ACTIVE · DISPENSING" : "FEEDER STANDBY · GATE CLOSED",
+                    isOn
+                        ? (provider.isDeviceConnected
+                            ? "FEEDER ACTIVE · DISPENSING"
+                            : "FEEDER ACTIVE (SIMULATOR)")
+                        : (provider.isDeviceConnected
+                            ? "FEEDER STANDBY · GATE CLOSED"
+                            : "STANDBY (HARDWARE OFFLINE)"),
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -550,8 +627,12 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
           const SizedBox(height: 4),
           Text(
             isOn
-                ? "Gate open at $angle° · Motor running"
-                : "Tap 'Turn ON Feeder' to start manual dispense",
+                ? (provider.isDeviceConnected
+                    ? "Gate open at $angle° · Motor running"
+                    : "Gate open at $angle° (Simulator Mode · Hardware Offline)")
+                : (provider.isDeviceConnected
+                    ? "Tap 'Turn ON Feeder' to start manual dispense"
+                    : "Tap 'Turn ON Feeder' to simulate dispense"),
             style: const TextStyle(
               fontSize: 13,
               color: Color(0xFF6B7280),
@@ -591,10 +672,17 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
                         ? null
                         : () {
                             provider.turnOnFeeder();
-                            UIFeedback.showSuccess(
-                              context,
-                              "Feeder turned ON! Dispenser gate opened to 90°",
-                            );
+                            if (provider.isDeviceConnected) {
+                              UIFeedback.showSuccess(
+                                context,
+                                "Feeder turned ON! Dispenser gate opened to 90°",
+                              );
+                            } else {
+                              UIFeedback.showInfo(
+                                context,
+                                "Feeder turned ON (Simulator). Physical hardware not connected.",
+                              );
+                            }
                           },
                     icon: const Icon(Icons.power_settings_new_rounded,
                         size: 20, color: Colors.white),
@@ -635,10 +723,17 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
                         ? null
                         : () {
                             provider.turnOffFeeder();
-                            UIFeedback.showInfo(
-                              context,
-                              "Feeder turned OFF. Gate closed.",
-                            );
+                            if (provider.isDeviceConnected) {
+                              UIFeedback.showInfo(
+                                context,
+                                "Feeder turned OFF. Gate closed.",
+                              );
+                            } else {
+                              UIFeedback.showInfo(
+                                context,
+                                "Feeder turned OFF (Simulator).",
+                              );
+                            }
                           },
                     icon: const Icon(Icons.power_off_rounded,
                         size: 20, color: Colors.white),
@@ -739,30 +834,30 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 6,
             children: [
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Smart Auto-Schedule",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F1A2A),
-                      ),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Smart Auto-Schedule",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F1A2A),
                     ),
-                    SizedBox(height: 2),
-                    Text(
-                      "Feed fish according to scheduled timetable",
-                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                    ),
-                  ],
-                ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    "Feed fish according to scheduled timetable",
+                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
               Switch.adaptive(
                 value: isAuto,
                 activeColor: const Color(0xFF1565C0),
@@ -900,30 +995,30 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Dispenser Gate Angle",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F1A2A),
-                      ),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Dispenser Gate Angle",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F1A2A),
                     ),
-                    SizedBox(height: 2),
-                    Text(
-                      "Servo Position (GPIO19 PWM)",
-                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                    ),
-                  ],
-                ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    "Servo Position (GPIO19 PWM)",
+                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1039,30 +1134,30 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
             children: [
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Hopper Capacity & Feed Level",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F1A2A),
-                      ),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Hopper Capacity & Feed Level",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F1A2A),
                     ),
-                    SizedBox(height: 2),
-                    Text(
-                      "Pellet Feed 3.0mm · 20 kg max capacity",
-                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                    ),
-                  ],
-                ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    "Pellet Feed 3.0mm · 20 kg max capacity",
+                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
               Text(
                 "${hopperPct.toInt()}%",
                 style: TextStyle(
@@ -1093,22 +1188,20 @@ class _FeederAutomateScreenState extends State<FeederAutomateScreen>
           ),
           const SizedBox(height: 14),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
             children: [
-              Expanded(
-                child: Text(
-                  "Estimated remaining: $remainingKg kg (~4 days)",
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF4B5563),
-                    fontWeight: FontWeight.w600,
-                  ),
+              Text(
+                "Estimated remaining: $remainingKg kg (~4 days)",
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF4B5563),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(width: 8),
               TextButton.icon(
                 onPressed: () {
                   provider.refillHopper();

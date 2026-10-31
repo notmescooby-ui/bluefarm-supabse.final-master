@@ -636,7 +636,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               ],
                             ),
                             child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
                                   Icons.verified_user_rounded,
@@ -644,27 +643,34 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                   size: 22,
                                 ),
                                 SizedBox(width: 12),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      "Explore Demo / Reviewer Mode",
-                                      style: TextStyle(
-                                        fontSize: 14.5,
-                                        fontWeight: FontWeight.w800,
-                                        color: Color(0xFF0F2B5B),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        "Explore Demo / Reviewer Mode",
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF0F2B5B),
+                                        ),
                                       ),
-                                    ),
-                                    Text(
-                                      "Google Play Review • Sample Data & Mock Identity",
-                                      style: TextStyle(
-                                        fontSize: 11.5,
-                                        color: Color(0xFF1565C0),
-                                        fontWeight: FontWeight.w600,
+                                      SizedBox(height: 2),
+                                      Text(
+                                        "Google Play Review • Sample Data & Mock Identity",
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 11.5,
+                                          color: Color(0xFF1565C0),
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
@@ -698,6 +704,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Image.network(
                                   "https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png",
@@ -713,12 +720,16 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                   ),
                                 ),
                                 const SizedBox(width: 14),
-                                const Text(
-                                  "Continue with Google",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF0D1F3C),
+                                const Flexible(
+                                  child: Text(
+                                    "Continue with Google",
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF0D1F3C),
+                                    ),
                                   ),
                                 ),
                               ],

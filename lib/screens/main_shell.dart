@@ -31,31 +31,20 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FC),
-      body: Stack(
-        children: [
-          IndexedStack(
-            index: _currentIndex,
-            children: [
-              HomeScreen(
-                onNavigateToTab: (index) => setState(() => _currentIndex = index),
-              ),
-              const FeederAutomateScreen(isTab: true),
-              const MarketNearMeScreen(isFarmer: true),
-              const HarvestScreen(),
-              const InsightsScreen(),
-              const KnowledgeScreen(),
-              const SettingsScreen(),
-            ],
-          ),
-
-          if (DemoModeService.isDemoMode)
-            Positioned(
-              top: MediaQuery.of(context).padding.top,
-              left: 0,
-              right: 0,
-              child: Material(
+    return PopScope(
+      canPop: _currentIndex == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (_currentIndex != 0) {
+          setState(() => _currentIndex = 0);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF7F9FC),
+        body: Column(
+          children: [
+            if (DemoModeService.isDemoMode)
+              Material(
                 color: Colors.transparent,
                 child: Container(
                   decoration: BoxDecoration(
@@ -71,7 +60,12 @@ class _MainShellState extends State<MainShell> {
                       ),
                     ],
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.of(context).padding.top + 4,
+                    bottom: 6,
+                    left: 12,
+                    right: 12,
+                  ),
                   child: Row(
                     children: [
                       const Icon(Icons.info_outline, size: 15, color: Color(0xFF1565C0)),
@@ -108,14 +102,33 @@ class _MainShellState extends State<MainShell> {
                   ),
                 ),
               ),
-            ),
+            Expanded(
+              child: Stack(
+                children: [
+                  IndexedStack(
+                    index: _currentIndex,
+                    children: [
+                      HomeScreen(
+                        onNavigateToTab: (index) => setState(() => _currentIndex = index),
+                      ),
+                      FeederAutomateScreen(
+                        isTab: true,
+                        onBackToHome: () => setState(() => _currentIndex = 0),
+                      ),
+                      const MarketNearMeScreen(isFarmer: true),
+                      const HarvestScreen(),
+                      const InsightsScreen(),
+                      const KnowledgeScreen(),
+                      const SettingsScreen(),
+                    ],
+                  ),
 
-          // Bottom Navigation Bar
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
+                  // Bottom Navigation Bar
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
               padding: EdgeInsets.only(
                 top: 7,
                 bottom: 7 + MediaQuery.of(context).padding.bottom,
@@ -196,8 +209,12 @@ class _MainShellState extends State<MainShell> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  ],
+),
+    ),
+  );
+}
 
   Widget _buildNavItem({
     required IconData icon,

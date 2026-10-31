@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../services/demo_mode_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  MARKET NEAR ME SCREEN
@@ -86,6 +87,25 @@ class _MarketNearMeScreenState extends State<MarketNearMeScreen> {
     });
 
     try {
+      if (DemoModeService.isDemoMode) {
+        _currentPosition = Position(
+          longitude: 72.8777,
+          latitude: 19.0760,
+          timestamp: DateTime.now(),
+          accuracy: 25.0,
+          altitude: 10.0,
+          altitudeAccuracy: 5.0,
+          heading: 0.0,
+          headingAccuracy: 0.0,
+          speed: 0.0,
+          speedAccuracy: 0.0,
+        );
+        _isUsingDemoLocation = true;
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        return;
+      }
+
       // 1. Check if location services (GPS) are enabled
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {

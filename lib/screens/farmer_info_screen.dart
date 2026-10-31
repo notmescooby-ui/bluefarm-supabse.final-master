@@ -620,11 +620,6 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
           'email': widget.email ?? user.email,
           'role': 'farmer',
           'aadhaar_verified': _isDemoVerified ? false : true,
-          'is_demo': _isDemoVerified,
-          'demo_verified': _isDemoVerified,
-          'verification_note': _isDemoVerified
-              ? 'Demo account for Google Play review. Sample data only.'
-              : null,
           'pincode': _pincodeCtrl.text.trim(),
           'region': _region,
           'gps_address': _gpsCtrl.text.trim(),
@@ -659,11 +654,6 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
           'email': widget.email ?? user.email,
           'role': 'buyer',
           'aadhaar_verified': _isDemoVerified ? false : true,
-          'is_demo': _isDemoVerified,
-          'demo_verified': _isDemoVerified,
-          'verification_note': _isDemoVerified
-              ? 'Demo account for Google Play review. Sample data only.'
-              : null,
           'buyer_type': _buyerType,
           'pincode': _buyerPincodeCtrl.text.trim(),
           'region': _buyerRegion,
@@ -678,10 +668,18 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
           (route) => false,
         );
       }
-    } catch (e) {
-      if (mounted)
-        UIFeedback.showError(
-            context, 'Failed to save profile. Check connection.');
+    } catch (e, stackTrace) {
+      debugPrint('Error saving profile: $e\n$stackTrace');
+      if (mounted) {
+        String msg = 'Failed to save profile. Please try again.';
+        if (e is PostgrestException) {
+          msg = 'Failed to save profile: ${e.message}';
+        } else if (e.toString().contains('SocketException') ||
+            e.toString().contains('Failed host lookup')) {
+          msg = 'Failed to save profile. Check connection.';
+        }
+        UIFeedback.showError(context, msg);
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

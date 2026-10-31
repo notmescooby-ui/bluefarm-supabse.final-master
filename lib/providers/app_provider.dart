@@ -216,6 +216,11 @@ class AppProvider extends ChangeNotifier {
     });
   }
 
+  void stopSensorWatch() {
+    _sensorSubscription?.cancel();
+    _sensorSubscription = null;
+  }
+
   Future<void> updateMotorSpeed(String motor, int speed) async {
     _deviceStatus['motor_'] = speed > 0;
     notifyListeners();

@@ -65,29 +65,31 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "BlueFarm",
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F1A2A),
-                              letterSpacing: -0.5,
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "BlueFarm",
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F1A2A),
+                                letterSpacing: -0.5,
+                              ),
                             ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            "FARMER WORKSPACE",
-                            style: TextStyle(
-                              fontSize: 11,
-                              letterSpacing: 3.0,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF6B7280),
+                            SizedBox(height: 2),
+                            Text(
+                              "FARMER WORKSPACE",
+                              style: TextStyle(
+                                fontSize: 11,
+                                letterSpacing: 3.0,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF6B7280),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       Container(
                         width: 40,
@@ -194,9 +196,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Icon(Icons.warning_amber_rounded, size: 20, color: Color(0xFFDC2626)),
                           SizedBox(width: 8),
-                          Text(
-                            "Action Required",
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D1F3C)),
+                          Expanded(
+                            child: Text(
+                              "Action Required",
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D1F3C)),
+                            ),
                           ),
                         ],
                       ),
@@ -244,9 +248,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Icon(Icons.check_circle, size: 20, color: Color(0xFF059669)),
                           SizedBox(width: 8),
-                          Text(
-                            "Smart recommendations",
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D1F3C)),
+                          Expanded(
+                            child: Text(
+                              "Smart recommendations",
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D1F3C)),
+                            ),
                           ),
                         ],
                       ),
@@ -299,17 +305,23 @@ class _HomeScreenState extends State<HomeScreen> {
                                 radius: 3,
                                 backgroundColor: store.isFeederOn
                                     ? const Color(0xFF059669)
-                                    : const Color(0xFF1565C0),
+                                    : (store.isDeviceConnected
+                                        ? const Color(0xFF1565C0)
+                                        : const Color(0xFFD97706)),
                               ),
                               const SizedBox(width: 5),
                               Text(
-                                store.isFeederOn ? "FEEDING ACTIVE" : "SMART IOT",
+                                store.isFeederOn
+                                    ? (store.isDeviceConnected ? "FEEDING ACTIVE" : "SIMULATING FEED")
+                                    : (store.isDeviceConnected ? "FEEDER READY" : "HARDWARE OFFLINE"),
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
                                   color: store.isFeederOn
                                       ? const Color(0xFF059669)
-                                      : const Color(0xFF1565C0),
+                                      : (store.isDeviceConnected
+                                          ? const Color(0xFF1565C0)
+                                          : const Color(0xFFD97706)),
                                 ),
                               ),
                             ],
@@ -444,8 +456,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                     onPressed: () {
                                       if (store.isFeederOn) {
                                         store.turnOffFeeder();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(store.isDeviceConnected
+                                                ? "Feeder turned OFF. Gate closed."
+                                                : "Feeder turned OFF (Simulator)."),
+                                            duration: const Duration(seconds: 2),
+                                          ),
+                                        );
                                       } else {
                                         store.turnOnFeeder();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(store.isDeviceConnected
+                                                ? "Feeder turned ON! Dispenser gate opened to 90°"
+                                                : "Feeder turned ON (Simulator). Physical hardware not connected."),
+                                            duration: const Duration(seconds: 2),
+                                          ),
+                                        );
                                       }
                                     },
                                     icon: Icon(

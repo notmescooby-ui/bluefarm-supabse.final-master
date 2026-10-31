@@ -72,6 +72,21 @@ class _AnimatedBannerState extends State<AnimatedBanner> with SingleTickerProvid
                     child: Image.asset(
                       widget.imagePath,
                       fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF0F2B5B), Color(0xFF1565C0)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.waves_rounded,
+                                color: Colors.white24, size: 56),
+                          ),
+                        );
+                      },
                     ),
                   );
                 },
