@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_redirect_service.dart';
 import '../services/ui_feedback_service.dart';
 import '../services/demo_mode_service.dart';
+import '../services/account_deletion_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'edit_profile_screen.dart';
 import 'privacy_policy_screen.dart';
@@ -151,6 +152,24 @@ class SettingsScreen extends StatelessWidget {
                           }
                         }
                       },
+                    ),
+                    _buildDivider(),
+                    _buildListTile(
+                      context,
+                      icon: Icons.delete_forever_rounded,
+                      title: 'Delete Account',
+                      subtitle: 'Request permanent deletion of account & data',
+                      isDestructive: true,
+                      trailing: const Icon(
+                        Icons.open_in_new_rounded,
+                        size: 18,
+                        color: Color(0xFFDC2626),
+                      ),
+                      onTap: () =>
+                          AccountDeletionService.confirmAndRedirectToDeleteAccount(
+                        context,
+                        role: 'farmer',
+                      ),
                     ),
                   ]),
                   const SizedBox(height: 100),

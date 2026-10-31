@@ -396,6 +396,15 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             child: Image.asset(
                               "lib/assets/logo.png",
                               fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                color: const Color(0xFF0F2B5B),
+                                alignment: Alignment.center,
+                                child: const Icon(
+                                  Icons.water_drop_rounded,
+                                  size: 48,
+                                  color: Color(0xFF38BDF8),
+                                ),
+                              ),
                             ),
                           ),
                         ),

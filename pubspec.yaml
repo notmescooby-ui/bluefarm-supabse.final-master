@@ -38,3 +38,4 @@ flutter:
 
   assets:
     - lib/assets/
+    - assets/

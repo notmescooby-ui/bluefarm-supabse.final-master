@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../services/auth_redirect_service.dart';
 import '../services/demo_mode_service.dart';
+import '../services/account_deletion_service.dart';
 import '../models/payment_types.dart';
 import '../models/payment_order.dart';
 import '../services/payment_service.dart';
@@ -2751,6 +2752,16 @@ class _ProfileTabState extends State<_ProfileTab> {
                     MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
                   );
                 }),
+                Divider(height: 1, color: Colors.grey.shade200),
+                _buildSettingTile(
+                  Icons.delete_forever_rounded,
+                  'Delete Account',
+                  isDestructive: true,
+                  onTap: () => AccountDeletionService.confirmAndRedirectToDeleteAccount(
+                    context,
+                    role: 'buyer',
+                  ),
+                ),
               ]),
             ),
             const SizedBox(height: 20),
@@ -2787,19 +2798,37 @@ class _ProfileTabState extends State<_ProfileTab> {
     );
   }
 
-  Widget _buildSettingTile(IconData icon, String title, {VoidCallback? onTap}) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: _kGreen.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
+  Widget _buildSettingTile(
+    IconData icon,
+    String title, {
+    VoidCallback? onTap,
+    bool isDestructive = false,
+  }) {
+    final color = isDestructive ? const Color(0xFFDC2626) : _kGreen;
+    final textColor = isDestructive ? const Color(0xFFDC2626) : _kText;
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 20),
         ),
-        child: Icon(icon, color: _kGreen, size: 20),
+        title: Text(title,
+            style: TextStyle(
+                fontWeight: FontWeight.w600, fontSize: 14, color: textColor)),
+        trailing: Icon(
+          isDestructive
+              ? Icons.open_in_new_rounded
+              : Icons.arrow_forward_ios_rounded,
+          size: isDestructive ? 16 : 14,
+          color: isDestructive ? color : Colors.grey,
+        ),
+        onTap: onTap,
       ),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: _kText)),
-      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
-      onTap: onTap,
     );
   }
 }
