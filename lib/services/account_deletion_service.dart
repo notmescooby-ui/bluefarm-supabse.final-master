@@ -8,11 +8,11 @@ class AccountDeletionConfig {
   /// This route handles secure identity verification (via Supabase OTP)
   /// and account deletion request processing for both Farmer and Buyer accounts.
   static const String deletionUrl =
-      'https://bluefarm-market.lovable.app/account-deletion';
+      'https://bluefarmaccountdeletion.vercel.app/';
 
   /// Fallback official production domain URL
   static const String fallbackDeletionUrl =
-      'https://bluefarm.market/account-deletion';
+      'https://bluefarmaccountdeletion.vercel.app/';
 }
 
 /// Service providing reusable account deletion confirmation dialog

@@ -40,7 +40,7 @@ void main() {
     test('Deletion URL constant points to official web route, not GitHub', () {
       const url = AccountDeletionConfig.deletionUrl;
       expect(url.startsWith('https://'), isTrue);
-      expect(url.contains('/account-deletion'), isTrue);
+      expect(url, equals('https://bluefarmaccountdeletion.vercel.app/'));
       expect(url.contains('github.com'), isFalse,
           reason: 'Mobile app must never redirect users to a development GitHub repository');
     });
