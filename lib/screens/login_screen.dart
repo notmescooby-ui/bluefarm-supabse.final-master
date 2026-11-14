@@ -140,147 +140,152 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   void _showReviewerDemoSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Row(
+      builder: (ctx) => SafeArea(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.verified_user_rounded,
+                        color: Color(0xFF1565C0),
+                        size: 26,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Google Play Reviewer / Demo",
+                            style: TextStyle(
+                              fontSize: 16.5,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F2B5B),
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            "Sample data • Non-sensitive evaluation mode",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
+                    color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
-                  child: const Icon(
-                    Icons.verified_user_rounded,
-                    color: Color(0xFF1565C0),
-                    size: 26,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Google Play Reviewer / Demo",
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F2B5B),
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        "Sample data • Non-sensitive evaluation mode",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                  child: const Text(
+                    "This mode allows Google reviewers to test farm profiles, IoT telemetry, feeding logs, and market tools with sample data. Demo mode does NOT grant real government Aadhaar verification or certify identity.",
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      height: 1.45,
+                      color: Color(0xFF334155),
+                    ),
                   ),
                 ),
+                const SizedBox(height: 14),
+                BounceButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    DemoModeService.startDemoSession(context, role: 'farmer');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1565C0),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.water_drop_rounded, color: Colors.white, size: 20),
+                        SizedBox(width: 10),
+                        Text(
+                          "Explore as Aquaculture Farmer (Demo)",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                BounceButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    DemoModeService.startDemoSession(context, role: 'buyer');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.storefront_rounded, color: Color(0xFF0F2B5B), size: 20),
+                        SizedBox(width: 10),
+                        Text(
+                          "Explore as Fish Buyer / Exporter (Demo)",
+                          style: TextStyle(
+                            color: Color(0xFF0F2B5B),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
               ],
             ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: const Text(
-                "This mode allows Google reviewers to test farm profiles, IoT telemetry, feeding logs, and market tools with sample data. Demo mode does NOT grant real government Aadhaar verification or certify identity.",
-                style: TextStyle(
-                  fontSize: 12.5,
-                  height: 1.5,
-                  color: Color(0xFF334155),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            BounceButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                DemoModeService.startDemoSession(context, role: 'farmer');
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1565C0),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.water_drop_rounded, color: Colors.white, size: 20),
-                    SizedBox(width: 10),
-                    Text(
-                      "Explore as Aquaculture Farmer (Demo)",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            BounceButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                DemoModeService.startDemoSession(context, role: 'buyer');
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFCBD5E1)),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.storefront_rounded, color: Color(0xFF0F2B5B), size: 20),
-                    SizedBox(width: 10),
-                    Text(
-                      "Explore as Fish Buyer / Exporter (Demo)",
-                      style: TextStyle(
-                        color: Color(0xFF0F2B5B),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
+          ),
         ),
       ),
     );

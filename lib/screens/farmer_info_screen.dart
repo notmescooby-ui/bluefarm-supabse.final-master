@@ -434,14 +434,16 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               Container(
                 width: 40,
                 height: 4,
@@ -529,7 +531,8 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   void _applyDemoVerification() {
