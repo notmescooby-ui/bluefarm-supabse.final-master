@@ -41,6 +41,7 @@
 
                 <!-- Reversed Client ID (often required for Google Auth handoff) -->
                 <data android:scheme="com.googleusercontent.apps.52765421109-36d1pjk6hh25fr1o61j7akhesj7dodrn" />
+                <data android:scheme="com.googleusercontent.apps.52765421109-83aa9mmclg90uai02tvnbgj4622menv1" />
             </intent-filter>
 
             <intent-filter>

@@ -1,7 +1,7 @@
 name: bluefarm
 description: BlueFarm - Aquaculture Water Quality Monitoring System
 publish_to: "none"
-version: 8.0.0+8
+version: 8.0.0+9
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
