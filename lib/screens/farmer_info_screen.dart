@@ -14,6 +14,7 @@ import 'device_connect_screen.dart';
 import '../services/auth_redirect_service.dart';
 import '../services/aadhaar_scanner_service.dart';
 import '../services/demo_mode_service.dart';
+import '../services/email_notification_service.dart';
 import '../providers/app_provider.dart';
 import 'privacy_policy_screen.dart';
 
@@ -640,6 +641,16 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
             .from('profiles')
             .upsert(payload, onConflict: 'id');
 
+        // Trigger welcome and admin email notification
+        EmailNotificationService().notifyUserRegistration(
+          userId: user.id,
+          fullName: _farmerNameCtrl.text.trim(),
+          role: 'farmer',
+          email: widget.email ?? user.email,
+          phone: widget.phone,
+          region: _region,
+        );
+
         if (!mounted) return;
         UIFeedback.showSuccess(context, "Farmer profile created!");
         Navigator.of(context).pushAndRemoveUntil(
@@ -663,6 +674,16 @@ class _FarmerInfoScreenState extends State<FarmerInfoScreen>
           'gps_address': _buyerGpsCtrl.text.trim(),
           'account_status': _isDemoVerified ? 'demo_review' : 'active',
         }, onConflict: 'id');
+
+        // Trigger welcome and admin email notification
+        EmailNotificationService().notifyUserRegistration(
+          userId: user.id,
+          fullName: _buyerNameCtrl.text.trim(),
+          role: 'buyer',
+          email: widget.email ?? user.email,
+          phone: widget.phone,
+          region: _buyerRegion,
+        );
 
         if (!mounted) return;
         UIFeedback.showSuccess(context, "Buyer profile created!");

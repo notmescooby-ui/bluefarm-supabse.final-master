@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../theme/app_theme.dart';
+import '../services/email_notification_service.dart';
 
 class HarvestScreen extends StatefulWidget {
   const HarvestScreen({super.key});
@@ -665,7 +666,18 @@ class _HarvestFormState extends State<_HarvestForm> {
       if (widget.editing != null) {
         await _client.from('listings').update(data).eq('id', widget.editing!['id']);
       } else {
-        await _client.from('listings').insert(data);
+        final inserted = await _client.from('listings').insert(data).select();
+        final listingId = inserted.isNotEmpty ? inserted.first['id']?.toString() : 'new';
+        
+        // Trigger farmer and admin email notification
+        EmailNotificationService().notifyNewHarvest(
+          listingId: listingId ?? 'new',
+          species: _species,
+          quantityKg: double.tryParse(_qtyCtrl.text.trim()) ?? 1.0,
+          pricePerKg: double.tryParse(_priceKgCtrl.text.trim()) ?? 0.0,
+          pondNumber: _pondCtrl.text.trim(),
+          fishCount: int.tryParse(_countCtrl.text.trim()),
+        );
       }
 
       _snack(

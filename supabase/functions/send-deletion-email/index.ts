@@ -1,33 +1,151 @@
 // ==============================================================================
 // BlueFarm — Supabase Edge Function: send-deletion-email
+// Dedicated Account Deletion Email Delivery Engine via Direct Gmail SMTP
 //
 // Sends two emails on account deletion:
 // 1. Admin Alert to BlueFarm Gmail (bluefarm1572@gmail.com) with user's name & reason
-// 2. Confirmation email to the requesting user (if valid email available)
+// 2. Confirmation email to the requesting user with reference tracking ID
 //
-// Supported Providers:
-// - Resend (Recommended, free 3,000 emails/mo): Set `RESEND_API_KEY` in Supabase Secrets
-// - Fallback console logging when API key is pending configuration
+// Primary Provider:
+// - Direct Gmail SMTP (Uses bluefarm1572@gmail.com via Google App Password)
+//   Requires secret: `GMAIL_APP_PASSWORD`
+// Fallback Providers:
+// - Resend (`RESEND_API_KEY`) / Brevo (`BREVO_API_KEY`)
 // ==============================================================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import nodemailer from "npm:nodemailer@6.9.13";
 
-const BLUEFARM_GMAIL = "bluefarm1572@gmail.com";
-const DEFAULT_FROM = "BlueFarm Security <onboarding@resend.dev>";
+const BLUEFARM_GMAIL = Deno.env.get("BLUEFARM_ADMIN_EMAIL") || "bluefarm1572@gmail.com";
+const GMAIL_USER = Deno.env.get("GMAIL_USER") || "bluefarm1572@gmail.com";
+const SENDER_NAME = Deno.env.get("BLUEFARM_SENDER_NAME") || "BlueFarm Security";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface DeletionEmailPayload {
-  reference_code: string;
-  user_name: string;
-  account_type: "farmer" | "buyer" | string;
-  contact: string;
-  user_email?: string | null;
-  reason?: string | null;
-  requested_at?: string;
+interface DispatchResult {
+  success: boolean;
+  provider: string;
+  messageId?: string;
+  error?: string;
+}
+
+async function sendEmail(toEmail: string, toName: string, subject: string, htmlContent: string): Promise<DispatchResult> {
+  const gmailPass = Deno.env.get("GMAIL_APP_PASSWORD");
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+  const brevoApiKey = Deno.env.get("BREVO_API_KEY");
+
+  // Validate email address
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(toEmail) || toEmail.match(/^\d+@/)) {
+    return { success: false, provider: "none", error: `Invalid recipient address: ${toEmail}` };
+  }
+
+  // 1. Primary: Direct Gmail SMTP
+  if (gmailPass && gmailPass.trim() !== "") {
+    try {
+      const cleanPass = gmailPass.replace(/\s+/g, "").trim();
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: GMAIL_USER,
+          pass: cleanPass,
+        },
+      });
+
+      const recipient = toName ? `"${toName}" <${toEmail.trim()}>` : toEmail.trim();
+
+      const info = await transporter.sendMail({
+        from: `"${SENDER_NAME}" <${GMAIL_USER}>`,
+        to: recipient,
+        subject,
+        html: htmlContent,
+        text: subject,
+      });
+
+      console.log(`[Gmail SMTP Deletion Email] Sent to ${toEmail}: ${info.messageId}`);
+      return { success: true, provider: "gmail_smtp", messageId: info.messageId || "gmail-" + Date.now() };
+    } catch (err) {
+      console.error("[Gmail SMTP Error]:", err);
+      if (!resendApiKey && !brevoApiKey) {
+        return { success: false, provider: "gmail_smtp", error: (err as Error).message };
+      }
+    }
+  }
+
+  // 2. Fallback: Resend API
+  if (resendApiKey && resendApiKey.trim() !== "") {
+    try {
+      const senderFrom = GMAIL_USER.includes("@bluefarm.")
+        ? `${SENDER_NAME} <${GMAIL_USER}>`
+        : Deno.env.get("RESEND_SENDER_EMAIL") || "BlueFarm Security <onboarding@resend.dev>";
+
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey.trim()}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: senderFrom,
+          to: [toEmail.trim()],
+          subject,
+          html: htmlContent,
+          text: subject,
+        }),
+      });
+
+      const resData = await response.json().catch(() => ({}));
+      if (response.ok && (response.status === 200 || response.status === 201)) {
+        return { success: true, provider: "resend", messageId: resData.id || "resend-" + Date.now() };
+      } else {
+        const errorMsg = resData.message || resData.name || `Resend HTTP ${response.status}`;
+        if (!brevoApiKey) return { success: false, provider: "resend", error: errorMsg };
+      }
+    } catch (err) {
+      if (!brevoApiKey) return { success: false, provider: "resend", error: (err as Error).message };
+    }
+  }
+
+  // 3. Fallback: Brevo API
+  if (brevoApiKey && brevoApiKey.trim() !== "") {
+    try {
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "api-key": brevoApiKey.trim(),
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify({
+          sender: { name: SENDER_NAME, email: GMAIL_USER },
+          to: [{ email: toEmail.trim(), name: toName || toEmail.split("@")[0] }],
+          subject,
+          htmlContent,
+          textContent: subject,
+        }),
+      });
+
+      const resData = await response.json().catch(() => ({}));
+      if (response.ok && (response.status === 201 || response.status === 200)) {
+        return { success: true, provider: "brevo", messageId: resData.messageId || "brevo-" + Date.now() };
+      } else {
+        return { success: false, provider: "brevo", error: resData.message || `Brevo HTTP ${response.status}` };
+      }
+    } catch (err) {
+      return { success: false, provider: "brevo", error: (err as Error).message };
+    }
+  }
+
+  console.warn("⚠️ GMAIL_APP_PASSWORD is not configured in Supabase secrets.");
+  return {
+    success: false,
+    provider: "unconfigured",
+    error: "GMAIL_APP_PASSWORD secret is not configured in Supabase.",
+  };
 }
 
 serve(async (req: Request) => {
@@ -35,9 +153,12 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
   try {
-    const rawBody = await req.json();
-    // Support both direct client invocations and Supabase Database Webhook payloads (rawBody.record)
+    const rawBody = await req.json().catch(() => ({}));
     const rec = rawBody.record ? rawBody.record : rawBody;
 
     const reference_code = rec.reference_code || rawBody.reference_code || "BF-UNKNOWN";
@@ -56,11 +177,7 @@ serve(async (req: Request) => {
     const cleanName = (user_name && user_name.trim()) ? user_name.trim() : "BlueFarm User";
     const formattedRole = account_type ? account_type.charAt(0).toUpperCase() + account_type.slice(1) : "Account";
 
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-
-    // ============================================================================
-    // 1. Prepare Admin Email to BlueFarm (bluefarm1572@gmail.com)
-    // ============================================================================
+    // ── 1. Admin Email HTML ──────────────────────────────────────────────────
     const adminSubject = `[BlueFarm] New Account Deletion Request - ${cleanName} (${reference_code})`;
     const adminHtml = `
       <!DOCTYPE html>
@@ -129,9 +246,7 @@ serve(async (req: Request) => {
       </html>
     `;
 
-    // ============================================================================
-    // 2. Prepare User Confirmation Email (if user email provided)
-    // ============================================================================
+    // ── 2. User Email HTML ───────────────────────────────────────────────────
     const userSubject = `Your BlueFarm Account Deletion Request [${reference_code}]`;
     const userHtml = `
       <!DOCTYPE html>
@@ -192,66 +307,64 @@ serve(async (req: Request) => {
       </html>
     `;
 
-    // ============================================================================
-    // 3. Dispatch Emails via Resend (or log if Resend API key is unconfigured)
-    // ============================================================================
-    if (!resendApiKey) {
-      console.warn("⚠️ RESEND_API_KEY secret is not set in Supabase. Email output logged to console:");
-      console.log(`[ADMIN NOTIFICATION] To: ${BLUEFARM_GMAIL} | Subject: ${adminSubject}`);
-      console.log(`[USER CONFIRMATION] To: ${user_email || 'None'} | Subject: ${userSubject}`);
+    // ── 3. Dispatch Emails via Gmail SMTP ─────────────────────────────────────
+    const adminDispatch = await sendEmail(BLUEFARM_GMAIL, "BlueFarm Admin", adminSubject, adminHtml);
 
-      return new Response(
-        JSON.stringify({
-          success: true,
-          mode: "dry-run",
-          message: "Email queued (RESEND_API_KEY not configured yet).",
-          admin_recipient: BLUEFARM_GMAIL,
-          user_recipient: user_email ?? null,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    let userDispatch: DispatchResult | null = null;
+    if (user_email && user_email.includes("@") && !user_email.match(/^\d+@/)) {
+      userDispatch = await sendEmail(user_email.trim(), cleanName, userSubject, userHtml);
     }
 
-    // Send Admin Notification to bluefarm1572@gmail.com
-    const adminEmailRes = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: DEFAULT_FROM,
-        to: [BLUEFARM_GMAIL],
-        subject: adminSubject,
-        html: adminHtml,
-      }),
-    });
-    const adminEmailResult = await adminEmailRes.json();
+    // ── 4. Log or Update public.email_notifications ──────────────────────────
+    try {
+      if (supabaseUrl && supabaseKey) {
+        await supabase.from("email_notifications").upsert(
+          {
+            event_type: "account_deletion",
+            recipient_email: BLUEFARM_GMAIL,
+            recipient_name: "BlueFarm Admin",
+            recipient_role: "admin",
+            subject: adminSubject,
+            html_content: adminHtml,
+            status: adminDispatch.success ? "sent" : "failed",
+            provider: adminDispatch.provider,
+            provider_message_id: adminDispatch.messageId,
+            error_message: adminDispatch.error,
+            sent_at: adminDispatch.success ? new Date().toISOString() : null,
+            idempotency_key: `edge_del_admin_${reference_code}`,
+          },
+          { onConflict: "idempotency_key" }
+        );
 
-    // Send User Confirmation (if valid email present)
-    let userEmailResult = null;
-    if (user_email && user_email.includes("@") && !user_email.match(/^\d+@gmail\.com$/)) {
-      const userEmailRes = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: DEFAULT_FROM,
-          to: [user_email.trim()],
-          subject: userSubject,
-          html: userHtml,
-        }),
-      });
-      userEmailResult = await userEmailRes.json();
+        if (user_email && userDispatch) {
+          await supabase.from("email_notifications").upsert(
+            {
+              event_type: "account_deletion",
+              recipient_email: user_email.trim(),
+              recipient_name: cleanName,
+              recipient_role: account_type,
+              subject: userSubject,
+              html_content: userHtml,
+              status: userDispatch.success ? "sent" : "failed",
+              provider: userDispatch.provider,
+              provider_message_id: userDispatch.messageId,
+              error_message: userDispatch.error,
+              sent_at: userDispatch.success ? new Date().toISOString() : null,
+              idempotency_key: `edge_del_user_${reference_code}`,
+            },
+            { onConflict: "idempotency_key" }
+          );
+        }
+      }
+    } catch (logErr) {
+      console.warn("[email_notifications log error]:", logErr);
     }
 
     return new Response(
       JSON.stringify({
-        success: true,
-        admin_email: adminEmailResult,
-        user_email: userEmailResult,
+        success: adminDispatch.success || (userDispatch ? userDispatch.success : false),
+        admin_dispatch: adminDispatch,
+        user_dispatch: userDispatch,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -263,4 +376,3 @@ serve(async (req: Request) => {
     );
   }
 });
-

@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/payment_order.dart';
 import '../models/payment_types.dart';
 import 'demo_mode_service.dart';
+import 'email_notification_service.dart';
 
 /// Custom exception thrown when attempting live payment through an unverified channel.
 class PaymentSecurityException implements Exception {
@@ -149,6 +150,24 @@ class PaymentService {
           await client.from('orders').insert(legacyOrderData);
           placedOrders.add(legacyOrderData);
         }
+      }
+    }
+
+    // Trigger asynchronous email notification dispatch (buyer, farmer, admin)
+    for (final o in placedOrders) {
+      final orderId = o['id']?.toString();
+      if (orderId != null && !orderId.startsWith('demo-')) {
+        EmailNotificationService().notifyNewOrder(
+          orderId: orderId,
+          buyerId: o['buyer_id']?.toString() ?? buyerId,
+          species: o['species']?.toString() ?? 'Aquaculture Fish',
+          quantityKg: (o['quantity_kg'] as num?)?.toDouble() ?? 1.0,
+          pricePerKg: (o['price_per_kg'] as num?)?.toDouble() ?? 0.0,
+          totalPrice: (o['total_price'] as num?)?.toDouble() ?? 0.0,
+          paymentMethod: o['payment_method']?.toString() ?? 'cod',
+          deliveryAddress: o['delivery_address']?.toString() ?? deliveryAddress,
+          farmerId: o['farmer_id']?.toString(),
+        );
       }
     }
 
